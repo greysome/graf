@@ -1,0 +1,4 @@
+*.a
+*.o
+graf-info
+test/fuzz-out/
