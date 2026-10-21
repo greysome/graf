@@ -1,4 +1,4 @@
-# GRAF version 0
+# GRAF v0.0
 
 GRAF is a binary file format for graphs, designed to be easy-to-parse
 yet flexible. It aims to support various types of graphs: simple,
@@ -15,6 +15,13 @@ GRAF primarily deals with 'arcs' which are directed edges --- this
 reflects the internal representation of the graph as per-vertex
 adjacency lists. An undirected graph can be defined by having two arcs
 for each edge.
+
+# Repo contents
+
+This repository contains a reference implementation of the GRAF parser
+and the `graf-info` utility. The release includes the compiled library
+`libgraf.a`, a public header `graf.h` with documented routines, and
+the `graf-info` executable.
 
 # GRAF file format
 
