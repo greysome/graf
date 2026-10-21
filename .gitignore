@@ -1,2 +1,4 @@
 test/fuzz-out/
 build/
+dist/
+*.tar.gz

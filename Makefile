@@ -4,7 +4,7 @@ BASE_CFLAGS ?= -std=c23 -Wall -Wextra -Wpedantic -Wconversion \
 DEBUG_CFLAGS := $(BASE_CFLAGS) -g3 -fsanitize=address,undefined
 RELEASE_CFLAGS := $(BASE_CFLAGS) -O2
 
-.PHONY: all debug release afl test fuzz build clean
+.PHONY: all debug release afl test fuzz dist build clean distclean
 
 all: release
 
@@ -23,10 +23,16 @@ test: release
 fuzz: afl
 	./test/fuzz.sh
 
+dist: release
+	./dist.sh
+
 build: $(BUILD_DIR)/libgraf.a $(BUILD_DIR)/graf-info
 
 clean:
 	rm -rf build
+
+distclean:
+	rm -rf dist graf-*.tar.gz
 
 $(BUILD_DIR)/libgraf.a: graf.c graf.h
 	mkdir -p $(BUILD_DIR)
