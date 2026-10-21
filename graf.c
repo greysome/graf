@@ -166,7 +166,7 @@ static GrafStatus _graf_read_arc_record(Graf *graf, GrafSlice *slice, GrafArc *a
     return GRAF_ERR_PARSE;
   }
 
-  if (graf->flags & GRAF_BIPARTITE) {
+  if (graf->segment_flags & GRAF_BIPARTITE) {
     uint32_t part_idx = graf->bipartite_part_v_attr_idx;
     uint32_t from_part = graf->V[from_id].attrs[part_idx].u;
     uint32_t to_part = graf->V[to_id].attrs[part_idx].u;
@@ -230,6 +230,7 @@ GrafStatus _graf_seg_vertex_label(Graf *graf, GrafSlice *slice) {
   }
 
   graf->v_attr_types[v_attr_idx] = GRAF_STR;
+  graf->segment_flags |= GRAF_VERTEX_LABELLED;
   return GRAF_OK;
 }
 
@@ -266,7 +267,7 @@ GrafStatus _graf_seg_bipartite(Graf *graf, GrafSlice *slice) {
   }
 
   graf->v_attr_types[v_attr_idx] = GRAF_UINT;
-  graf->flags |= GRAF_BIPARTITE;
+  graf->segment_flags |= GRAF_BIPARTITE;
   return GRAF_OK;
 }
 

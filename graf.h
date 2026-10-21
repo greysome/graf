@@ -36,7 +36,8 @@ typedef struct {
 } GrafAttr;
 
 typedef enum {
-  GRAF_BIPARTITE = 1,
+  GRAF_VERTEX_LABELLED = 1,
+  GRAF_BIPARTITE       = 1 << 2,
 } GrafFlag;
 
 struct _GrafArc;
@@ -74,7 +75,7 @@ typedef struct {
 
   GrafVertex *V;
 
-  uint64_t flags;
+  uint64_t segment_flags;
 
   GrafType v_attr_types[GRAF_MAX_ATTRS];
   GrafType a_attr_types[GRAF_MAX_ATTRS];
