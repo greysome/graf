@@ -7,6 +7,7 @@
 
 typedef enum {
   GRAF_SEGCODE_VERTEX_LABEL = 0x00000000,
+  GRAF_SEGCODE_ARC_LABEL    = 0x00000001,
   GRAF_SEGCODE_BIPARTITE    = 0x00000002,
   GRAF_SEGCODE_VERTEX_ARRAY = 0xFFFFFFFE,
   GRAF_SEGCODE_ARC_ARRAY    = 0xFFFFFFFF,
@@ -26,6 +27,12 @@ typedef enum {
   GRAF_STR,
 } GrafType;
 
+typedef enum {
+  GRAF_VERTEX_LABELLED = 1,
+  GRAF_ARC_LABELLED    = 1 << 1,
+  GRAF_BIPARTITE       = 1 << 2,
+} GrafFlag;
+
 typedef struct {
   GrafType type;
   union {
@@ -34,11 +41,6 @@ typedef struct {
     const char *s;
   };
 } GrafAttr;
-
-typedef enum {
-  GRAF_VERTEX_LABELLED = 1,
-  GRAF_BIPARTITE       = 1 << 2,
-} GrafFlag;
 
 struct _GrafArc;
 struct _GrafVertex;

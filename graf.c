@@ -234,6 +234,30 @@ GrafStatus _graf_seg_vertex_label(Graf *graf, GrafSlice *slice) {
   return GRAF_OK;
 }
 
+GrafStatus _graf_seg_arc_label(Graf *graf, GrafSlice *slice) {
+  ASSERT(graf != NULL);
+  ASSERT(slice != NULL);
+
+  uint32_t a_attr_idx;
+  _GRAF_READ_UINT(graf, slice, &a_attr_idx);
+
+  if (a_attr_idx >= graf->a_attr_count) {
+    graf->detailed_err = GRAF_BAD_ATTR_IDX;
+    return GRAF_ERR_PARSE;
+  }
+
+  graf->label_a_attr_idx = a_attr_idx;
+
+  if (graf->a_attr_types[a_attr_idx] != GRAF_UNUSED) {
+    graf->detailed_err = GRAF_ATTR_ALREADY_DEFINED;
+    return GRAF_ERR_PARSE;
+  }
+
+  graf->a_attr_types[a_attr_idx] = GRAF_STR;
+  graf->segment_flags |= GRAF_ARC_LABELLED;
+  return GRAF_OK;
+}
+
 GrafStatus _graf_seg_bipartite(Graf *graf, GrafSlice *slice) {
   ASSERT(graf != NULL);
   ASSERT(slice != NULL);
@@ -308,11 +332,11 @@ GrafStatus _graf_seg_arc_array(Graf *graf, GrafSlice *slice) {
   return GRAF_OK;
 }
 
-/* --------------------------------------------------------- */
-/* --------------------------------------------------------- */
-/* --------------------------------------------------------- */
-/* --------------------------------------------------------- */
-/* --------------------------------------------------------- */
+/*
+  --------------------------------------------------------------------
+  GRAF PUBLIC API
+  --------------------------------------------------------------------
+*/
 
 GrafStatus graf_init(Graf *graf) {
   if (graf == NULL) {
@@ -457,6 +481,10 @@ GrafStatus graf_load(Graf *graf, GrafVertex *V, GrafArc *A, char *s) {
 
     if (seg_code == GRAF_SEGCODE_VERTEX_LABEL) {
       status = _graf_seg_vertex_label(graf, &slice);
+    }
+
+    else if (seg_code == GRAF_SEGCODE_ARC_LABEL) {
+      status = _graf_seg_arc_label(graf, &slice);
     }
 
     else if (seg_code == GRAF_SEGCODE_BIPARTITE) {
