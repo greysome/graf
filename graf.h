@@ -96,7 +96,7 @@ typedef struct {
   Initialise graf to some sane values.
 
   Errors:
-  GRAF_ERR_PARSE if a null pointer was psased
+  GRAF_ERR_USAGE if a null pointer was psased
 */
 GrafStatus graf_init(Graf *graf);
 
@@ -105,7 +105,7 @@ GrafStatus graf_init(Graf *graf);
   required buffers. Populate the header values for application use.
 
   Errors:
-  GRAF_ERR_PARSE if a null pointer was passed
+  GRAF_ERR_USAGE if a null pointer was passed
   GRAF_ERR_SYS if cannot open or read file
   GRAF_ERR_PARSE if GRAF header is malformed
 */
@@ -119,19 +119,21 @@ GrafStatus graf_open(const char *path, Graf *graf);
   respectively.
 
   Errors:
-  GRAF_ERR_PARSE if a null pointer was psased
+  GRAF_ERR_USAGE if a null pointer was psased
   GRAF_ERR_SYS if cannot mmap or close file
   GRAF_ERR_PARSE if GRAF body is malformed
 */
 GrafStatus graf_load(Graf *graf, GrafVertex *V, GrafArc *A, char *s);
 
 /*
-  Close the file that was read in. Not needed if graf_load() is successful.
+  Close the file opened by graf_open(). This should be called for
+  cleanup.
 
-  Call this for cleanup if it is intended to open but not load the
-  GRAF file, or when a routine returns an error.
+  Note: This can fail if opening the file failed in the first place.
 
   Errors:
-  GRAF_ERR_PARSE if a null pointer was psased
+  GRAF_ERR_USAGE if a null pointer was passed, or a file was not
+  opened in the first place
+  GRAF_ERR_SYS if close fails
 */
 GrafStatus graf_close(Graf *graf);
