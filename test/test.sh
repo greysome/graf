@@ -2,6 +2,12 @@
 set -u
 
 mydir="$(dirname "$(realpath "${BASH_SOURCE[0]}")")"
+graf_info="${mydir}/../build/release/graf-info"
+if [[ ! -f "$graf_info" ]]; then
+    echo "Could not find release build of graf-info (${graf_info})"
+    exit 1
+fi
+
 total_tests=0
 passed_tests=0
 
@@ -13,7 +19,7 @@ run_test() {
   echo "${basename}:"
   echo -e "  expected:  ${expected}"
 
-  actual=$("${mydir}/../graf-info" "$file" 2>&1)
+  actual=$("$graf_info" "$file" 2>&1)
   echo -e "  actual:    ${actual}"
 
   total_tests=$((total_tests+1))
