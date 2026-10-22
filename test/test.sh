@@ -2,9 +2,9 @@
 set -u
 
 mydir="$(dirname "$(realpath "${BASH_SOURCE[0]}")")"
-graf_info="${mydir}/../build/release/graf-info"
+graf_info="${mydir}/../build/debug/graf-info"
 if [[ ! -f "$graf_info" ]]; then
-    echo "Could not find release build of graf-info (${graf_info})"
+    echo "Could not find debug build of graf-info (${graf_info})"
     exit 1
 fi
 
@@ -49,3 +49,7 @@ run_test "${mydir}/graphs/bipartite-label-conflict.graf" 'attribute already defi
 run_test "${mydir}/graphs/bipartite-bad-part-sizes.graf" 'bad part sizes in bipartite segment'
 run_test "${mydir}/graphs/bipartite-bad-attr-index.graf" 'attribute index out of bounds'
 echo -e "\n${passed_tests}/${total_tests} tests passed"
+
+if [[ $passed_tests -lt $total_tests ]]; then
+  exit 1
+fi

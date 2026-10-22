@@ -1,7 +1,7 @@
 CC ?= gcc
 BASE_CFLAGS ?= -std=c23 -Wall -Wextra -Wpedantic -Wconversion \
 	-Wdouble-promotion -Wno-unused-parameter -Wno-unused-function
-DEBUG_CFLAGS := $(BASE_CFLAGS) -g3 -fsanitize=address,undefined
+DEBUG_CFLAGS := $(BASE_CFLAGS) -g3 --coverage -fprofile-abs-path
 RELEASE_CFLAGS := $(BASE_CFLAGS) -O2
 
 .PHONY: all debug release afl test fuzz dist build clean distclean
@@ -17,7 +17,7 @@ release:
 afl:
 	$(MAKE) CC=afl-cc BUILD_DIR=build/afl CFLAGS='$(RELEASE_CFLAGS)' build
 
-test: release
+test: debug
 	./test/test.sh
 
 fuzz: afl
