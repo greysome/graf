@@ -31,8 +31,8 @@ The header consists of the following:
 2. (UINT) Version number (currently `0`)
 3. (UINT) Vertex count
 4. (UINT) Arc count
-5. (UINT) Vertex attribute count (`0`-`4`)
-6. (UINT) Arc attribute count (`0`-`4`)
+5. (UINT) Vertex attribute count (`0`-`2`)
+6. (UINT) Arc attribute count (`0`-`2`)
 7. (UINT) Total length of all strings in file, including null-terminators
 
 This is followed by a list of segments, each starting with a (UINT)

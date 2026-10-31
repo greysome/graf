@@ -3,7 +3,8 @@
 
 #define GRAF_VERSION 0
 #define GRAF_HEADER_SIZE 28
-#define GRAF_MAX_ATTRS 4
+#define GRAF_MAX_ATTRS 2
+#define GRAF_MAX_INTERNAL_ATTRS 2
 
 typedef enum {
   GRAF_SEGCODE_VERTEX_LABEL = 0x00000000,
@@ -49,6 +50,7 @@ struct _GrafVertex {
   uint32_t id;
   struct _GrafArc *arcs;
   GrafAttr attrs[GRAF_MAX_ATTRS];
+  GrafAttr internal_attrs[GRAF_MAX_INTERNAL_ATTRS];
 };
 
 struct _GrafArc {
@@ -56,6 +58,7 @@ struct _GrafArc {
   struct _GrafVertex *to;
   struct _GrafArc *next;
   GrafAttr attrs[GRAF_MAX_ATTRS];
+  GrafAttr internal_attrs[GRAF_MAX_INTERNAL_ATTRS];
 };
 
 typedef struct _GrafArc GrafArc;
