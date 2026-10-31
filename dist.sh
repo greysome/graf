@@ -7,7 +7,7 @@ cp README.md dist/
 cp LICENSE dist/
 cp graf.h dist/include/
 cp build/release/libgraf.a dist/lib/
-cp build/release/graf-info dist/bin/
+cp -R build/release/bin/ dist/
 
 os=$(uname -s | tr '[:upper:]' '[:lower:]')
 arch=$(uname -m)

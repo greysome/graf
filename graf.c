@@ -13,29 +13,6 @@
 #include <unistd.h>
 #include "graf.h"
 
-// I frankly still don't understand how this works
-#define STRINGIFY(x) #x
-#define STRINGIFY2(x) STRINGIFY(x)
-#define LINE_STR STRINGIFY2(__LINE__)
-
-#ifdef ASSERT_TRAP
-#  define ASSERT(cond)                                      \
-     do {                                                   \
-       if (!(cond)) {                                       \
-         fprintf(stderr, "ASSERT FAILED: " #cond " (" __FILE__ ":" LINE_STR ")\n");     \
-         __builtin_trap();                                  \
-       }                                                    \
-     } while (0)
-#else
-#  define ASSERT(cond)                                      \
-     do {                                                   \
-       if (!(cond)) {                                       \
-         fprintf(stderr, "ASSERT FAILED: " #cond " (" __FILE__ ":" LINE_STR ")\n");     \
-         exit(66);                                          \
-       }                                                    \
-     } while (0)
-#endif
-
 const char *GRAF_OPEN_FAIL = "open() failed";
 const char *GRAF_READ_FAIL = "read() failed";
 const char *GRAF_STAT_FAIL = "stat() failed";
@@ -61,21 +38,21 @@ typedef struct {
 } GrafSlice;
 
 static bool _graf_slice_require(const GrafSlice *slice, size_t n) {
-  ASSERT(slice != NULL);
+  GRAF_ASSERT(slice != NULL);
   return slice->n >= n;
 }
 
 static void _graf_slice_advance(GrafSlice *slice, size_t n) {
-  ASSERT(slice != NULL);
-  ASSERT(_graf_slice_require(slice, n));
+  GRAF_ASSERT(slice != NULL);
+  GRAF_ASSERT(_graf_slice_require(slice, n));
   slice->s += n;
   slice->n -= n;
 }
 
 static GrafStatus _graf_read_uint(Graf *graf, GrafSlice *slice, uint32_t *u) {
-  ASSERT(graf != NULL);
-  ASSERT(slice != NULL);
-  ASSERT(u != NULL);
+  GRAF_ASSERT(graf != NULL);
+  GRAF_ASSERT(slice != NULL);
+  GRAF_ASSERT(u != NULL);
 
   if (!_graf_slice_require(slice, sizeof(uint32_t))) {
     graf->detailed_err = GRAF_ABRUPT_EOF;
@@ -89,9 +66,9 @@ static GrafStatus _graf_read_uint(Graf *graf, GrafSlice *slice, uint32_t *u) {
 }
 
 static GrafStatus _graf_read_str(Graf *graf, GrafSlice *slice, const char **s) {
-  ASSERT(graf != NULL);
-  ASSERT(slice != NULL);
-  ASSERT(s != NULL);
+  GRAF_ASSERT(graf != NULL);
+  GRAF_ASSERT(slice != NULL);
+  GRAF_ASSERT(s != NULL);
 
   char *end = memchr(slice->s, '\0', slice->n);
 
@@ -134,9 +111,9 @@ static GrafStatus _graf_read_str(Graf *graf, GrafSlice *slice, const char **s) {
   } while (0)
 
 static GrafStatus _graf_read_vertex_record(Graf *graf, GrafSlice *slice, GrafVertex *vertex) {
-  ASSERT(graf != NULL);
-  ASSERT(slice != NULL);
-  ASSERT(vertex != NULL);
+  GRAF_ASSERT(graf != NULL);
+  GRAF_ASSERT(slice != NULL);
+  GRAF_ASSERT(vertex != NULL);
 
   for (uint32_t j = 0; j < graf->v_attr_count; j++) {
     GrafType type = graf->v_attr_types[j];
@@ -163,16 +140,16 @@ static GrafStatus _graf_read_vertex_record(Graf *graf, GrafSlice *slice, GrafVer
 }
 
 static GrafStatus _graf_read_arc_record(Graf *graf, GrafSlice *slice, GrafArc *arc) {
-  ASSERT(graf != NULL);
-  ASSERT(slice != NULL);
-  ASSERT(arc != NULL);
+  GRAF_ASSERT(graf != NULL);
+  GRAF_ASSERT(slice != NULL);
+  GRAF_ASSERT(arc != NULL);
 
   uint32_t from_id;
   uint32_t to_id;
   _GRAF_READ_UINT(graf, slice, &from_id);
   _GRAF_READ_UINT(graf, slice, &to_id);
 
-  if (from_id >= graf->v || to_id >= graf->v) {
+  if (from_id >= graf->nv || to_id >= graf->nv) {
     graf->detailed_err = GRAF_VERTEX_OOB;
     return GRAF_ERR_PARSE;
   }
@@ -222,8 +199,8 @@ static GrafStatus _graf_read_arc_record(Graf *graf, GrafSlice *slice, GrafArc *a
 }
 
 GrafStatus _graf_seg_vertex_label(Graf *graf, GrafSlice *slice) {
-  ASSERT(graf != NULL);
-  ASSERT(slice != NULL);
+  GRAF_ASSERT(graf != NULL);
+  GRAF_ASSERT(slice != NULL);
 
   uint32_t v_attr_idx;
   _GRAF_READ_UINT(graf, slice, &v_attr_idx);
@@ -246,8 +223,8 @@ GrafStatus _graf_seg_vertex_label(Graf *graf, GrafSlice *slice) {
 }
 
 GrafStatus _graf_seg_arc_label(Graf *graf, GrafSlice *slice) {
-  ASSERT(graf != NULL);
-  ASSERT(slice != NULL);
+  GRAF_ASSERT(graf != NULL);
+  GRAF_ASSERT(slice != NULL);
 
   uint32_t a_attr_idx;
   _GRAF_READ_UINT(graf, slice, &a_attr_idx);
@@ -270,15 +247,15 @@ GrafStatus _graf_seg_arc_label(Graf *graf, GrafSlice *slice) {
 }
 
 GrafStatus _graf_seg_bipartite(Graf *graf, GrafSlice *slice) {
-  ASSERT(graf != NULL);
-  ASSERT(slice != NULL);
+  GRAF_ASSERT(graf != NULL);
+  GRAF_ASSERT(slice != NULL);
 
   uint32_t part0;
   uint32_t part1;
   _GRAF_READ_UINT(graf, slice, &part0);
   _GRAF_READ_UINT(graf, slice, &part1);
 
-  if (part0 + part1 != graf->v) {
+  if (part0 + part1 != graf->nv) {
     graf->detailed_err = GRAF_BIPARTITE_BAD_PART_SIZES;
     return GRAF_ERR_PARSE;
   }
@@ -307,11 +284,11 @@ GrafStatus _graf_seg_bipartite(Graf *graf, GrafSlice *slice) {
 }
 
 GrafStatus _graf_seg_vertex_array(Graf *graf, GrafSlice *slice) {
-  ASSERT(graf != NULL);
-  ASSERT(slice != NULL);
-  ASSERT(graf->V != NULL);
+  GRAF_ASSERT(graf != NULL);
+  GRAF_ASSERT(slice != NULL);
+  GRAF_ASSERT(graf->V != NULL);
 
-  for (uint32_t id = 0; id < graf->v; id++) {
+  for (uint32_t id = 0; id < graf->nv; id++) {
     graf->V[id].id = id;
     GrafStatus status = _graf_read_vertex_record(graf, slice, &graf->V[id]);
 
@@ -324,11 +301,11 @@ GrafStatus _graf_seg_vertex_array(Graf *graf, GrafSlice *slice) {
 }
 
 GrafStatus _graf_seg_arc_array(Graf *graf, GrafSlice *slice) {
-  ASSERT(graf != NULL);
-  ASSERT(slice != NULL);
-  ASSERT(graf->internal.all_arcs != NULL);
+  GRAF_ASSERT(graf != NULL);
+  GRAF_ASSERT(slice != NULL);
+  GRAF_ASSERT(graf->internal.all_arcs != NULL);
 
-  for (uint32_t i = 0; i < graf->a; i++) {
+  for (uint32_t i = 0; i < graf->na; i++) {
     GrafArc *arc = &graf->internal.all_arcs[i];
     GrafStatus status = _graf_read_arc_record(graf, slice, arc);
 
@@ -401,7 +378,7 @@ GrafStatus graf_open(const char *path, Graf *graf) {
     ptr += n_read;
   }
 
-  ASSERT((size_t)(ptr - header) == GRAF_HEADER_SIZE);
+  GRAF_ASSERT((size_t)(ptr - header) == GRAF_HEADER_SIZE);
 
   GrafSlice header_slice = {header, sizeof(header)};
 
@@ -417,8 +394,8 @@ GrafStatus graf_open(const char *path, Graf *graf) {
     goto bad_header;
   }
 
-  _GRAF_READ_UINT(graf, &header_slice, &graf->v);
-  _GRAF_READ_UINT(graf, &header_slice, &graf->a);
+  _GRAF_READ_UINT(graf, &header_slice, &graf->nv);
+  _GRAF_READ_UINT(graf, &header_slice, &graf->na);
   _GRAF_READ_UINT(graf, &header_slice, &graf->v_attr_count);
   _GRAF_READ_UINT(graf, &header_slice, &graf->a_attr_count);
   _GRAF_READ_UINT(graf, &header_slice, &graf->char_count);
@@ -465,7 +442,7 @@ GrafStatus graf_load(Graf *graf, GrafVertex *V, GrafArc *A, char *s) {
   }
 
   size_t n = st.st_size - GRAF_HEADER_SIZE;
-  ASSERT(n > 0);
+  GRAF_ASSERT(n > 0);
   char *buf = mmap(NULL, st.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
 
   if (buf == (char *) -1) {
