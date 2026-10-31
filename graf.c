@@ -13,17 +13,28 @@
 #include <unistd.h>
 #include "graf.h"
 
-/*
-  Custom assert that automatically traps, allowing gdb to be used at
-  the point of failure.
-*/
-#define ASSERT(cond)                                     \
-  do {                                                   \
-    if (!(cond)) {                                       \
-      fprintf(stderr, "assertion failed: " #cond "\n");  \
-      __builtin_trap();                                  \
-    }                                                    \
-  } while (0)
+// I frankly still don't understand how this works
+#define STRINGIFY(x) #x
+#define STRINGIFY2(x) STRINGIFY(x)
+#define LINE_STR STRINGIFY2(__LINE__)
+
+#ifdef ASSERT_TRAP
+#  define ASSERT(cond)                                      \
+     do {                                                   \
+       if (!(cond)) {                                       \
+         fprintf(stderr, "ASSERT FAILED: " #cond " (" __FILE__ ":" LINE_STR ")\n");     \
+         __builtin_trap();                                  \
+       }                                                    \
+     } while (0)
+#else
+#  define ASSERT(cond)                                      \
+     do {                                                   \
+       if (!(cond)) {                                       \
+         fprintf(stderr, "ASSERT FAILED: " #cond " (" __FILE__ ":" LINE_STR ")\n");     \
+         exit(66);                                          \
+       }                                                    \
+     } while (0)
+#endif
 
 const char *GRAF_OPEN_FAIL = "open() failed";
 const char *GRAF_READ_FAIL = "read() failed";
