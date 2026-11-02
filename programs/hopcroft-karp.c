@@ -97,7 +97,7 @@ void _initial_matching(Graf *graf, State *state) {
       GRAF_DEBUG("%u - %u\n", g->id, b->id);
     }
   }
-  GRAF_DEBUG("\n");
+  GRAF_DEBUG("Size: %d\n\n", state->matching_size);
 }
 
 GrafStatus hopcroft_karp(Graf *graf, State *state) {
@@ -136,7 +136,7 @@ next_level:
   while (qhead < qmark) {
     GrafVertex *g = state->queue[qhead++];
 
-    GRAF_DEBUG("- visit girl %s\n", ATTR_LABEL(g));
+    GRAF_DEBUG("- visit girl: %s\n", ATTR_LABEL(g));
     state->bfs_vertex_counts[state->n_iter]++;
 
     for (GrafArc *a = g->arcs; a != NULL; a = a->next) {
@@ -156,7 +156,7 @@ next_level:
       }
 
       // Boy is unmarked: BFS found a new vertex
-      GRAF_DEBUG("  - visit boy %s", ATTR_LABEL(b));
+      GRAF_DEBUG("  - visit boy: %s", ATTR_LABEL(b));
       state->bfs_vertex_counts[state->n_iter]++;
 
       GrafVertex *g1 = ATTR_MATE(b);
@@ -230,7 +230,7 @@ next_sap:
 
 H12:
   state->stack[--cur_level] = b;
-  GRAF_DEBUG("- %d: visit %s\n", cur_level, ATTR_LABEL(b));
+  GRAF_DEBUG("- level %d: visit boy: %s\n", cur_level, ATTR_LABEL(b));
 
   // Find a girl preceding b by one level, that hasn't been visited
 H13:
@@ -244,7 +244,7 @@ H13:
     // The girl g is eligible if her current mate is empty (i.e. she
     // is unmatched) or unmarked.
     if (b == NULL || ATTR_MARK(b) != (uint32_t) sap_level + 2) {
-      GRAF_DEBUG("  - found girl %s\n", ATTR_LABEL(g));
+      GRAF_DEBUG("  - found girl: %s\n", ATTR_LABEL(g));
       break;
     }
 
@@ -316,14 +316,26 @@ int main(int argc, char **argv) {
 
   char *path = argv[argc - 1];
   Graf *graf = calloc(1, sizeof(*graf));
+  GrafStatus status;
 
-  graf_init(graf);
-  graf_open(path, graf);
+  status = graf_init(graf);
+  GRAF_ASSERT(status == GRAF_OK);
+
+  status = graf_open(path, graf);
+  if (status != GRAF_OK) {
+    fprintf(stderr, "%s", graf->detailed_err);
+    return 1;
+  }
 
   GrafVertex *V = calloc(graf->nv, sizeof(*V));
   GrafArc *A = calloc(graf->na, sizeof(*A));
   char *s = calloc(graf->char_count, 1);
-  graf_load(graf, V, A, s);
+
+  status = graf_load(graf, V, A, s);
+  if (status != GRAF_OK) {
+    fprintf(stderr, "%s", graf->detailed_err);
+    return 1;
+  }
 
   State *state = calloc(1, sizeof(*state));
   state->queue = calloc(graf->nv, sizeof(*state->queue));
@@ -356,6 +368,7 @@ int main(int argc, char **argv) {
 
   printf("Size: %d\n", state->matching_size);
 
+  graf_close(graf);
   free(V);
   free(A);
   free(s);

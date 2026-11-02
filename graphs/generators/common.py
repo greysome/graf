@@ -1,8 +1,5 @@
 import pathlib
 
-MY_PATH = pathlib.Path(__file__).resolve()
-GRAPH_DIR = MY_PATH.parent.parent
-
 _buf = bytearray()
 _char_count = 0
 _v_attr_count = None
@@ -89,7 +86,10 @@ def add_vertex(*attrs):
 def add_arc(src, dest, *attrs):
   global _a_attr_count, _na
   assert len(attrs) == _a_attr_count
-  print(f'- [ARC] {src}->{dest}: {attrs}')
+  if ' ' in src or ' ' in dest or len(src) >= 8 or len(dest) >= 8:
+    print(f'- [ARC] {src} -> {dest}: {attrs}')
+  else:
+    print(f'- [ARC] {src}->{dest}: {attrs}')
 
   if _na == 0:
     add_segment(0xffffffff)
@@ -114,6 +114,7 @@ def fixup_header():
   print(f'- [HEADER] nv={_nv}, na={_na}, chars={_char_count}')
 
 def write_to(file):
+  GRAPH_DIR = pathlib.Path(__file__).resolve().parent.parent
   with open(f'{GRAPH_DIR}/{file}', 'wb') as f:
     f.write(_buf)
   print(f'- [EXPORT] {GRAPH_DIR}/{file}')
