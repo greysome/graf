@@ -315,44 +315,56 @@ int main(int argc, char **argv) {
   }
 
   char *path = argv[argc - 1];
-  Graf graf;
+  Graf *graf = calloc(1, sizeof(*graf));
 
-  graf_init(&graf);
-  graf_open(path, &graf);
+  graf_init(graf);
+  graf_open(path, graf);
 
-  GrafVertex *V = calloc(graf.nv, sizeof(*V));
-  GrafArc *A = calloc(graf.na, sizeof(*A));
-  char *s = calloc(graf.char_count, 1);
-  graf_load(&graf, V, A, s);
+  GrafVertex *V = calloc(graf->nv, sizeof(*V));
+  GrafArc *A = calloc(graf->na, sizeof(*A));
+  char *s = calloc(graf->char_count, 1);
+  graf_load(graf, V, A, s);
 
-  State state;
-  state.queue = calloc(graf.nv, sizeof(*state.queue));
-  state.iqueue = calloc(graf.nv, sizeof(*state.iqueue));
-  state.marked = calloc(graf.nv, sizeof(*state.marked));
-  state.stack = calloc(graf.nv, sizeof(*state.stack));
-  state.bfs_vertex_counts = calloc(graf.nv, sizeof(*state.bfs_vertex_counts));
-  state.bfs_arc_counts = calloc(graf.nv, sizeof(*state.bfs_arc_counts));
-  state.sap_levels = calloc(graf.nv, sizeof(*state.sap_levels));
-  state.sap_counts = calloc(graf.nv, sizeof(*state.sap_counts));
+  State *state = calloc(1, sizeof(*state));
+  state->queue = calloc(graf->nv, sizeof(*state->queue));
+  state->iqueue = calloc(graf->nv, sizeof(*state->iqueue));
+  state->marked = calloc(graf->nv, sizeof(*state->marked));
+  state->stack = calloc(graf->nv, sizeof(*state->stack));
+  state->bfs_vertex_counts = calloc(graf->nv, sizeof(*state->bfs_vertex_counts));
+  state->bfs_arc_counts = calloc(graf->nv, sizeof(*state->bfs_arc_counts));
+  state->sap_levels = calloc(graf->nv, sizeof(*state->sap_levels));
+  state->sap_counts = calloc(graf->nv, sizeof(*state->sap_counts));
 
-  hopcroft_karp(&graf, &state);
+  hopcroft_karp(graf, state);
 
   printf(" %-4s  |  %-12s  %-8s  %-9s  %-9s\n", "Iter", "BFS vertices", "BFS arcs", "SAP level", "# SAPs");
   printf("----------------------------------------------------\n");
-  for (int i = 0; i < state.n_iter; i++) {
-    printf(" %4d  |  %-12d  %-8d  %-9d  %-9d\n", i, state.bfs_vertex_counts[i], state.bfs_arc_counts[i], state.sap_levels[i], state.sap_counts[i]);
+  for (int i = 0; i < state->n_iter; i++) {
+    printf(" %4d  |  %-12d  %-8d  %-9d  %-9d\n", i, state->bfs_vertex_counts[i], state->bfs_arc_counts[i], state->sap_levels[i], state->sap_counts[i]);
   }
-  printf("\nSize of maximum matching: %d\n", state.matching_size);
+
+  printf("\nMaximum matching:\n");
+  for (GrafVertex *v = graf->V; v < graf->V + graf->nv; v++) {
+    GrafVertex *w = ATTR_MATE(v);
+
+    if (ATTR_PART(v) != 0 || w == NULL) {
+      continue;
+    }
+
+    printf("%s - %s\n", ATTR_LABEL(v), ATTR_LABEL(w));
+  }
+
+  printf("Size: %d\n", state->matching_size);
 
   free(V);
   free(A);
   free(s);
-  free(state.queue);
-  free(state.iqueue);
-  free(state.marked);
-  free(state.stack);
-  free(state.bfs_vertex_counts);
-  free(state.bfs_arc_counts);
-  free(state.sap_levels);
-  free(state.sap_counts);
+  free(state->queue);
+  free(state->iqueue);
+  free(state->marked);
+  free(state->stack);
+  free(state->bfs_vertex_counts);
+  free(state->bfs_arc_counts);
+  free(state->sap_levels);
+  free(state->sap_counts);
 }
