@@ -212,11 +212,11 @@ next_level:
 next_sap:
   if (r == 0) {
     for (int i = 0; i < state->n_marked; i++) {
-      GRAF_DEBUG("\n");
       ATTR_MARK(state->marked[i]) = 0;
-      state->n_iter++;
-      goto bfs;
     }
+    state->n_iter++;
+    GRAF_DEBUG("\n");
+    goto bfs;
   }
 
   // The goal of steps H12 and H13 is to find an SAP in the current
@@ -237,20 +237,11 @@ H13:
   GrafArc *a;
   while (1) {
     a = ATTR_B_LINK(b);
-    ATTR_B_LINK(b) = ATTR_B_NEXT(a);
-    g = a->from;
-    b = ATTR_MATE(g);
-
-    // The girl g is eligible if her current mate is empty (i.e. she
-    // is unmatched) or unmarked.
-    if (b == NULL || ATTR_MARK(b) != (uint32_t) sap_level + 2) {
-      GRAF_DEBUG("  - found girl: %s\n", ATTR_LABEL(g));
-      break;
-    }
 
     // No more girls preceding b; resume higher level
-    if (ATTR_B_LINK(b) == NULL) {
+    if (a == NULL) {
       cur_level++;
+      GRAF_DEBUG("  - moving up one level\n");
       if (cur_level == sap_level) {
         goto next_sap;
       }
@@ -258,7 +249,18 @@ H13:
         b = state->stack[cur_level];
         goto H13;
       }
-      GRAF_DEBUG("  - moving up one level\n");
+    }
+
+    ATTR_B_LINK(b) = ATTR_B_NEXT(a);
+    g = a->from;
+
+    // The girl g is eligible if her current mate is empty (i.e. she
+    // is unmatched) or unmarked.
+    GrafVertex *b1 = ATTR_MATE(g);
+    if (b1 == NULL || ATTR_MARK(b1) != (uint32_t) sap_level + 2) {
+      b = b1;
+      GRAF_DEBUG("  - found girl: %s\n", ATTR_LABEL(g));
+      break;
     }
   }
 
@@ -292,11 +294,10 @@ H13:
 
     g = g1;
     b = state->stack[++cur_level];
-
-    state->matching_size++;
-    state->sap_counts[state->n_iter]++;
   }
 
+  state->sap_counts[state->n_iter]++;
+  state->matching_size++;
   goto next_sap;
 }
 
