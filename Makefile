@@ -1,6 +1,7 @@
 CC ?= gcc
 BASE_CFLAGS ?= -std=c23 -Wall -Wextra -Wpedantic -Wconversion \
-	-Wdouble-promotion -Wno-unused-parameter -Wno-unused-function
+	-Wdouble-promotion -Wno-unused-parameter -Wno-unused-function \
+	-Wno-format-extra-args -Wno-format
 DEBUG_CFLAGS := $(BASE_CFLAGS) -fsanitize=address,undefined -g3 --coverage -fprofile-abs-path -DASSERT_TRAP
 RELEASE_CFLAGS := $(BASE_CFLAGS) -O2
 programs := $(patsubst programs/%.c,$(BUILD_DIR)/bin/%,$(wildcard programs/*.c))

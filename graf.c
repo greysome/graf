@@ -3,6 +3,7 @@
 #endif
 
 #include <fcntl.h>
+#include <printf.h>
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -12,6 +13,48 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include "graf.h"
+
+/*
+  --------------------------------------------------------------------
+  VERTEX PRINTF FORMAT
+  --------------------------------------------------------------------
+*/
+
+/*
+  Used to determine how to print vertices in the custom format
+  routine. If there are no vertex labels (based on
+  _graf_global->segment_flags), then fall back to '#<id>'.
+*/
+Graf *_graf_global = NULL;
+bool _graf_registered_printf = false;
+
+static int _printf_vertex_arginfo(const struct printf_info *info, size_t n, int *argtypes) {
+  if (n > 0) {
+    argtypes[0] = PA_POINTER;
+  }
+  return 1;
+}
+
+static int _printf_vertex_handler(FILE *stream, const struct printf_info *info, const void *const *args) {
+  GrafVertex *v = *((GrafVertex **) args[0]);
+  int len = 0;
+
+  if (_graf_global == NULL || !(_graf_global->segment_flags & GRAF_VERTEX_LABELLED)) {
+    len = fprintf(stream, "#%d", v->id);
+  }
+  else {
+    uint32_t idx = _graf_global->label_v_attr_idx;
+    len = fprintf(stream, "%s", v->attrs[idx].s);
+  }
+
+  return len;
+}
+
+/*
+  --------------------------------------------------------------------
+  INTERNALS
+  --------------------------------------------------------------------
+*/
 
 const char *GRAF_OPEN_FAIL = "open() failed";
 const char *GRAF_READ_FAIL = "read() failed";
@@ -322,7 +365,7 @@ GrafStatus _graf_seg_arc_array(Graf *graf, GrafSlice *slice) {
 
 /*
   --------------------------------------------------------------------
-  GRAF PUBLIC API
+  PUBLIC API
   --------------------------------------------------------------------
 */
 
@@ -526,6 +569,13 @@ GrafStatus graf_load(Graf *graf, GrafVertex *V, GrafArc *A, char *s) {
 
 load_done:
   munmap(buf, (size_t) st.st_size);
+
+  if (!_graf_registered_printf) {
+    _graf_registered_printf = true;
+    GRAF_ASSERT(register_printf_function('v', _printf_vertex_handler, _printf_vertex_arginfo) == 0);
+  }
+  _graf_global = graf;
+
   return status;
 }
 
@@ -547,5 +597,6 @@ GrafStatus graf_close(Graf *graf) {
   }
 
   graf->internal.fd = -1;
+  _graf_global = NULL;
   return GRAF_OK;
 }
