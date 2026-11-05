@@ -125,7 +125,7 @@ typedef struct {
   uint32_t na;
   uint32_t v_attr_count;
   uint32_t a_attr_count;
-  uint32_t char_count;
+  uint32_t nchars;
 
   GrafVertex *V;
 
@@ -167,8 +167,8 @@ GrafStatus graf_open(const char *path, Graf *graf);
   Load the graph with user-supplied buffers, with sizes requested by
   graf_open(). Must be called after graf_open() and at most once.
 
-  V, A, s must have sizes graf->v, graf->a, graf->char_count
-  respectively.
+  V, A, s must have sizes graf->nv, graf->na, graf->nchars
+  respectively. They must be non-NULL even if the size is 0.
 
   Errors:
   GRAF_ERR_USAGE if a null pointer was psased

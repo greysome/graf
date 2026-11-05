@@ -17,14 +17,14 @@ int main(int argc, char **argv) {
     return 2;
   }
 
-  size_t v_count = graf.nv == 0 ? 1 : graf.nv;
-  size_t a_count = graf.na == 0 ? 1 : graf.na;
-  size_t char_count = graf.char_count == 0 ? 1 : graf.char_count;
+  size_t nv = graf.nv == 0 ? 1 : graf.nv;
+  size_t na = graf.na == 0 ? 1 : graf.na;
+  size_t nchars = graf.nchars == 0 ? 1 : graf.nchars;
 
   // Don't bother freeing since these are one-off allocations
-  GrafVertex *V = calloc(v_count, sizeof(*V));
-  GrafArc *A = calloc(a_count, sizeof(*A));
-  char *s = calloc(char_count, sizeof(*s));
+  GrafVertex *V = calloc(nv, sizeof(*V));
+  GrafArc *A = calloc(na, sizeof(*A));
+  char *s = calloc(nchars, sizeof(*s));
 
   int exit_code = 0;
 

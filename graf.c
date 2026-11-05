@@ -24,7 +24,7 @@ const char *GRAF_BAD_ATTR_IDX = "attribute index out of bounds";
 const char *GRAF_ABRUPT_EOF = "abrupt end-of-file";
 const char *GRAF_UNKNOWN_SEG = "unknown segment";
 const char *GRAF_VERTEX_OOB = "vertex index out of bounds";
-const char *GRAF_BAD_CHAR_COUNT = "total character count too small";
+const char *GRAF_BAD_NCHARS = "total character count too small";
 const char *GRAF_VA_NOT_SEEN = "vertex array not seen before arc array";
 const char *GRAF_NULLPTR = "null pointer was passed";
 const char *GRAF_UNIMPLEMENTED = "not implemented yet";
@@ -79,8 +79,8 @@ static GrafStatus _graf_read_str(Graf *graf, GrafSlice *slice, const char **s) {
 
   size_t n = end - slice->s + 1;
 
-  if (graf->internal.all_strs_offset + n > graf->char_count) {
-    graf->detailed_err = GRAF_BAD_CHAR_COUNT;
+  if (graf->internal.all_strs_offset + n > graf->nchars) {
+    graf->detailed_err = GRAF_BAD_NCHARS;
     return GRAF_ERR_PARSE;
   }
 
@@ -398,7 +398,7 @@ GrafStatus graf_open(const char *path, Graf *graf) {
   _GRAF_READ_UINT(graf, &header_slice, &graf->na);
   _GRAF_READ_UINT(graf, &header_slice, &graf->v_attr_count);
   _GRAF_READ_UINT(graf, &header_slice, &graf->a_attr_count);
-  _GRAF_READ_UINT(graf, &header_slice, &graf->char_count);
+  _GRAF_READ_UINT(graf, &header_slice, &graf->nchars);
 
   if (graf->v_attr_count > GRAF_MAX_ATTRS ||
       graf->a_attr_count > GRAF_MAX_ATTRS) {

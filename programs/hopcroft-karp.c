@@ -330,7 +330,7 @@ int main(int argc, char **argv) {
 
   GrafVertex *V = calloc(graf->nv, sizeof(*V));
   GrafArc *A = calloc(graf->na, sizeof(*A));
-  char *s = calloc(graf->char_count, 1);
+  char *s = calloc(graf->nchars, 1);
 
   status = graf_load(graf, V, A, s);
   if (status != GRAF_OK) {
