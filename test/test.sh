@@ -2,7 +2,7 @@
 set -u
 
 mydir="$(dirname "$(realpath "${BASH_SOURCE[0]}")")"
-graf_info="${mydir}/../build/debug/graf-info"
+graf_info="${mydir}/../build/debug/bin/graf-info"
 if [[ ! -f "$graf_info" ]]; then
     echo "Could not find debug build of graf-info (${graf_info})"
     exit 1
