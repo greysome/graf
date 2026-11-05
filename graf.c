@@ -77,7 +77,7 @@ static GrafStatus _graf_read_str(Graf *graf, GrafSlice *slice, const char **s) {
     return GRAF_ERR_PARSE;
   }
 
-  size_t n = end - slice->s + 1;
+  size_t n = (size_t) (end - slice->s + 1);
 
   if (graf->internal.all_strs_offset + n > graf->nchars) {
     graf->detailed_err = GRAF_BAD_NCHARS;
@@ -441,9 +441,9 @@ GrafStatus graf_load(Graf *graf, GrafVertex *V, GrafArc *A, char *s) {
     return GRAF_ERR_PARSE;
   }
 
-  size_t n = st.st_size - GRAF_HEADER_SIZE;
+  size_t n = (size_t) st.st_size - GRAF_HEADER_SIZE;
   GRAF_ASSERT(n > 0);
-  char *buf = mmap(NULL, st.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
+  char *buf = mmap(NULL, (size_t) st.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
 
   if (buf == (char *) -1) {
     graf->detailed_err = GRAF_MMAP_FAIL;
@@ -525,7 +525,7 @@ GrafStatus graf_load(Graf *graf, GrafVertex *V, GrafArc *A, char *s) {
   }
 
 load_done:
-  munmap(buf, st.st_size);
+  munmap(buf, (size_t) st.st_size);
   return status;
 }
 
