@@ -1,8 +1,9 @@
 CC ?= gcc
 BASE_CFLAGS ?= -std=c23 -Wall -Wextra -Wpedantic -Wconversion \
 	-Wdouble-promotion -Wno-unused-parameter -Wno-unused-function
-DEBUG_CFLAGS := $(BASE_CFLAGS) -g3 --coverage -fprofile-abs-path -DASSERT_TRAP
+DEBUG_CFLAGS := $(BASE_CFLAGS) -fsanitize=address,undefined -g3 --coverage -fprofile-abs-path -DASSERT_TRAP
 RELEASE_CFLAGS := $(BASE_CFLAGS) -O2
+programs := $(patsubst programs/%.c,$(BUILD_DIR)/bin/%,$(wildcard programs/*.c))
 
 .PHONY: all debug release afl test fuzz dist build clean distclean
 
@@ -26,7 +27,7 @@ fuzz: afl
 dist: release
 	./dist.sh
 
-build: $(BUILD_DIR)/libgraf.a $(BUILD_DIR)/graf-info
+build: $(BUILD_DIR)/libgraf.a $(programs)
 
 clean:
 	rm -rf build
@@ -39,6 +40,6 @@ $(BUILD_DIR)/libgraf.a: graf.c graf.h
 	$(CC) $(CFLAGS) -c graf.c -o $(BUILD_DIR)/graf.o
 	ar rcs $@ $(BUILD_DIR)/graf.o
 
-$(BUILD_DIR)/graf-info: graf-info.c $(BUILD_DIR)/libgraf.a
-	mkdir -p $(BUILD_DIR)
-	$(CC) $(CFLAGS) graf-info.c $(BUILD_DIR)/libgraf.a -o $@
+$(BUILD_DIR)/bin/%: programs/%.c $(BUILD_DIR)/libgraf.a
+	mkdir -p $(BUILD_DIR)/bin
+	$(CC) $(CFLAGS) -I. $^ -o $@

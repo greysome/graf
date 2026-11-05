@@ -17,8 +17,8 @@ int main(int argc, char **argv) {
     return 2;
   }
 
-  size_t v_count = graf.v == 0 ? 1 : graf.v;
-  size_t a_count = graf.a == 0 ? 1 : graf.a;
+  size_t v_count = graf.nv == 0 ? 1 : graf.nv;
+  size_t a_count = graf.na == 0 ? 1 : graf.na;
   size_t char_count = graf.char_count == 0 ? 1 : graf.char_count;
 
   // Don't bother freeing since these are one-off allocations

@@ -1,10 +1,37 @@
+#ifndef GRAF_H
+#define GRAF_H
+
 #include <stdbool.h>
 #include <stdint.h>
+
+// I frankly still don't understand how this works
+#define STRINGIFY(x) #x
+#define STRINGIFY2(x) STRINGIFY(x)
+#define LINE_STR STRINGIFY2(__LINE__)
+#ifdef ASSERT_TRAP
+#  define GRAF_ASSERT(cond)                                 \
+     do {                                                   \
+       if (!(cond)) {                                       \
+         fprintf(stderr, "ASSERT FAILED: " #cond " (" __FILE__ ":" LINE_STR ")\n");     \
+         __builtin_trap();                                  \
+       }                                                    \
+     } while (0)
+#else
+#  define GRAF_ASSERT(cond)                                 \
+     do {                                                   \
+       if (!(cond)) {                                       \
+         fprintf(stderr, "ASSERT FAILED: " #cond " (" __FILE__ ":" LINE_STR ")\n");     \
+         exit(66);                                          \
+       }                                                    \
+     } while (0)
+#endif
+
+#define GRAF_DEBUG(...) fprintf(stderr __VA_OPT__(,) __VA_ARGS__)
 
 #define GRAF_VERSION 0
 #define GRAF_HEADER_SIZE 28
 #define GRAF_MAX_ATTRS 2
-#define GRAF_MAX_INTERNAL_ATTRS 2
+#define GRAF_MAX_INTERNAL_ATTRS 3
 
 typedef enum {
   GRAF_SEGCODE_VERTEX_LABEL = 0x00000000,
@@ -22,6 +49,26 @@ typedef enum {
   GRAF_ERR_UNIMPLEMENTED,
 } GrafStatus;
 
+/* Detailed error messages to complement GrafStatus. */
+extern const char *GRAF_OPEN_FAIL;
+extern const char *GRAF_READ_FAIL;
+extern const char *GRAF_STAT_FAIL;
+extern const char *GRAF_MMAP_FAIL;
+extern const char *GRAF_CLOSE_FAIL;
+extern const char *GRAF_BAD_HEADER;
+extern const char *GRAF_NOT_OPENED;
+extern const char *GRAF_BAD_ATTR_IDX;
+extern const char *GRAF_ABRUPT_EOF;
+extern const char *GRAF_UNKNOWN_SEG;
+extern const char *GRAF_VERTEX_OOB;
+extern const char *GRAF_BAD_CHAR_COUNT;
+extern const char *GRAF_VA_NOT_SEEN;
+extern const char *GRAF_NULLPTR;
+extern const char *GRAF_UNIMPLEMENTED;
+extern const char *GRAF_ATTR_ALREADY_DEFINED;
+extern const char *GRAF_BIPARTITE_BAD_PART_SIZES;
+extern const char *GRAF_BIPARTITE_BAD_ARC;
+
 typedef enum {
   GRAF_UNUSED,
   GRAF_UINT,
@@ -34,17 +81,19 @@ typedef enum {
   GRAF_BIPARTITE       = 1 << 2,
 } GrafFlag;
 
+struct _GrafArc;
+struct _GrafVertex;
+
 typedef struct {
   GrafType type;
   union {
     uint32_t u;
     float f;
     const char *s;
+    struct _GrafVertex *v;
+    struct _GrafArc *a;
   };
 } GrafAttr;
-
-struct _GrafArc;
-struct _GrafVertex;
 
 struct _GrafVertex {
   uint32_t id;
@@ -72,8 +121,8 @@ typedef struct {
 } GrafInternal;
 
 typedef struct {
-  uint32_t v;
-  uint32_t a;
+  uint32_t nv;
+  uint32_t na;
   uint32_t v_attr_count;
   uint32_t a_attr_count;
   uint32_t char_count;
@@ -140,3 +189,5 @@ GrafStatus graf_load(Graf *graf, GrafVertex *V, GrafArc *A, char *s);
   GRAF_ERR_SYS if close fails
 */
 GrafStatus graf_close(Graf *graf);
+
+#endif
