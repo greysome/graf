@@ -67,10 +67,17 @@ def bipartite(A, B, v_attr_idx):
   add_segment(0x00000002, A, B, v_attr_idx)
   print(f'- [SEGMENT] bipartite({A},{B}): v_attr {v_attr_idx}')
 
+def v_to_str(v):
+  if isinstance(v, int):
+    return f'#{v}'
+  else:
+    return str(v)
+
 def add_vertex(*attrs):
   global _v_attr_count, _nv
   assert len(attrs) == _v_attr_count
-  print(f'- [VERTEX] {_nv}: {attrs}')
+
+  print(f'- [VERTEX] #{_nv}: {attrs}')
 
   if _nv == 0:
     add_segment(0xfffffffe)
@@ -86,10 +93,8 @@ def add_vertex(*attrs):
 def add_arc(src, dest, *attrs):
   global _a_attr_count, _na
   assert len(attrs) == _a_attr_count
-  if ' ' in src or ' ' in dest or len(src) >= 8 or len(dest) >= 8:
-    print(f'- [ARC] {src} -> {dest}: {attrs}')
-  else:
-    print(f'- [ARC] {src}->{dest}: {attrs}')
+
+  print(f'- [ARC] {v_to_str(src)} -> {v_to_str(dest)}: {attrs}')
 
   if _na == 0:
     add_segment(0xffffffff)
