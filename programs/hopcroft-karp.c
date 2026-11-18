@@ -315,7 +315,7 @@ void input_file(char *path, Graf *graf) {
   }
 }
 
-void random_bipartite(Graf *graf, long m, long n, long p) {
+void random_bipartite(Graf *graf, long m, long n, double p) {
   graf->nv = (uint32_t) (m + n);
   graf->a_attr_count = 0;
   graf->nchars = 0;
@@ -349,7 +349,7 @@ void random_bipartite(Graf *graf, long m, long n, long p) {
     for (GrafVertex *w = V + m; w < V + m + n; w++) {
       // TODO: use a better RNG
       double x = (double) rand() / RAND_MAX;
-      if (x * 100 < p) {
+      if (x < p) {
         a->from = v;
         a->to = w;
         a->next = v->arcs;
@@ -359,7 +359,7 @@ void random_bipartite(Graf *graf, long m, long n, long p) {
         a->from = w;
         a->to = v;
         a->next = w->arcs;
-        v->arcs = a;
+        w->arcs = a;
         a++;
       }
     }
@@ -390,8 +390,8 @@ void input_rand(char *spec, Graf *graf) {
     goto bad;
   }
 
-  long p = strtol(ptr, &ptr, 10);
-  if (p < 0 || p > 100 || *ptr != '\0') {
+  double p = strtod(ptr, &ptr);
+  if (p < 0.0 || p > 1.0 || *ptr != '\0') {
     goto bad;
   }
 
@@ -412,7 +412,7 @@ int main(int argc, char **argv) {
 "\n"
 "rand:... tells the program to run the algorithm on a randomly generated\n"
 "generated bipartite graph with part sizes m and n, with the proportion of\n"
-"edges given by p (an integer from 0-100, inclusive).\n"
+"edges given by p (a floating point number between 0 and 1).\n"
     );
     return 1;
   }
