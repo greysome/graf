@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 #include <unistd.h>
 #include "graf.h"
 
@@ -38,7 +39,7 @@ typedef struct {
   int *sap_counts;
 } State;
 
-void _init_state(uint32_t nv, State *state) {
+void init_state(uint32_t nv, State *state) {
   state->n_unmatched_girls = 0;
   state->n_marked = 0;
   state->matching_size = 0;
@@ -49,7 +50,7 @@ void _init_state(uint32_t nv, State *state) {
   Greedily construct a maximal matching by matching each girl in turn
   with her first unmatched boy neighbour, if possible.
 */
-void _initial_matching(Graf *graf, State *state) {
+void construct_maximal_matching(Graf *graf, State *state) {
   for (GrafVertex *g = graf->V; g < graf->V + graf->nv; g++) {
     // We iterate through only girls' neighbours.
     if (ATTR_PART(g) == 1) {
@@ -90,12 +91,7 @@ void _initial_matching(Graf *graf, State *state) {
       continue;
     }
 
-    if (graf->segment_flags & GRAF_VERTEX_LABELLED) {
-      GRAF_DEBUG("%s - %s\n", ATTR_LABEL(g), ATTR_LABEL(b));
-    }
-    else {
-      GRAF_DEBUG("%u - %u\n", g->id, b->id);
-    }
+    GRAF_DEBUG("%v - %v\n", g, b);
   }
   GRAF_DEBUG("Size: %d\n\n", state->matching_size);
 }
@@ -109,8 +105,8 @@ GrafStatus hopcroft_karp(Graf *graf, State *state) {
     return GRAF_ERR_USAGE;
   }
 
-  _init_state(graf->nv, state);
-  _initial_matching(graf, state);
+  init_state(graf->nv, state);
+  construct_maximal_matching(graf, state);
 
 bfs:
   GRAF_DEBUG("---------- BFS ----------\n");
@@ -136,7 +132,7 @@ next_level:
   while (qhead < qmark) {
     GrafVertex *g = state->queue[qhead++];
 
-    GRAF_DEBUG("- visit girl: %s\n", ATTR_LABEL(g));
+    GRAF_DEBUG("- visit girl: %v\n", g);
     state->bfs_vertex_counts[state->n_iter]++;
 
     for (GrafArc *a = g->arcs; a != NULL; a = a->next) {
@@ -156,7 +152,7 @@ next_level:
       }
 
       // Boy is unmarked: BFS found a new vertex
-      GRAF_DEBUG("  - visit boy: %s", ATTR_LABEL(b));
+      GRAF_DEBUG("  - visit boy: %v", b);
       state->bfs_vertex_counts[state->n_iter]++;
 
       GrafVertex *g1 = ATTR_MATE(b);
@@ -178,7 +174,7 @@ next_level:
 
       // Enqueue if boy is matched and SAP not found yet
       if (g1 != NULL) {
-        GRAF_DEBUG(" (mate %s)\n", ATTR_LABEL(g1));
+        GRAF_DEBUG(" (mate %v)\n", g1);
         state->queue[qtail++] = g1;
       }
       // First unmatched boy found: we found an SAP!
@@ -230,7 +226,7 @@ next_sap:
 
 H12:
   state->stack[--cur_level] = b;
-  GRAF_DEBUG("- level %d: visit boy: %s\n", cur_level, ATTR_LABEL(b));
+  GRAF_DEBUG("- level %d: visit boy: %v\n", cur_level, b);
 
   // Find a girl preceding b by one level, that hasn't been visited
 H13:
@@ -259,7 +255,7 @@ H13:
     GrafVertex *b1 = ATTR_MATE(g);
     if (b1 == NULL || ATTR_MARK(b1) != (uint32_t) sap_level + 2) {
       b = b1;
-      GRAF_DEBUG("  - found girl: %s\n", ATTR_LABEL(g));
+      GRAF_DEBUG("  - found girl: %v\n", g);
       break;
     }
   }
@@ -301,31 +297,11 @@ H13:
   goto next_sap;
 }
 
-int main(int argc, char **argv) {
-  if (argc == 1) {
-    printf(
-"Usage:\n"
-"hopcroft-karp <file>\n"
-"hopcroft-karp rand:<A>,<B>,<p>,<n>\n"
-"\n"
-"rand:... tells the program to run the algorithm n times, each time on\n"
-"a randomly generated bipartite graph with part sizes A and B, with the\n"
-"proportion of edges given by p (an integer from 0-100, inclusive).\n"
-    );
-    return 1;
-  }
-
-  char *path = argv[argc - 1];
-  Graf *graf = calloc(1, sizeof(*graf));
-  GrafStatus status;
-
-  status = graf_init(graf);
-  GRAF_ASSERT(status == GRAF_OK);
-
-  status = graf_open(path, graf);
+void input_file(char *path, Graf *graf) {
+  GrafStatus status = graf_open(path, graf);
   if (status != GRAF_OK) {
     fprintf(stderr, "[ERROR] graf_open() failed %s\n", graf_error_info(status, graf->detailed_err));
-    return 1;
+    exit(1);
   }
 
   GrafVertex *V = calloc(graf->nv, sizeof(*V));
@@ -335,7 +311,122 @@ int main(int argc, char **argv) {
   status = graf_load(graf, V, A, s);
   if (status != GRAF_OK) {
     fprintf(stderr, "[ERROR] graf_load() failed %s\n", graf_error_info(status, graf->detailed_err));
+    exit(1);
+  }
+}
+
+void random_bipartite(Graf *graf, long m, long n, long p) {
+  graf->nv = (uint32_t) (m + n);
+  graf->a_attr_count = 0;
+  graf->nchars = 0;
+  graf->detailed_err = NULL;
+  graf->internal.fd = -1;
+
+  graf->segment_flags = GRAF_BIPARTITE;
+  graf->bipartite_parts[0] = (uint32_t) m;
+  graf->bipartite_parts[1] = (uint32_t) n;
+  graf->bipartite_part_v_attr_idx = 0;
+  graf->v_attr_count = 1;
+  graf->v_attr_types[0] = GRAF_UINT;
+
+  GrafVertex *V = calloc(graf->nv, sizeof(*V));
+  // Overallocate the arcs, just to be very safe
+  GrafArc *A = calloc((size_t) (2 * m * n), sizeof(*graf->internal.all_arcs));
+
+  // Initialise vertices
+  for (int i = 0; i < m + n; i++) {
+    GrafVertex *v = &V[i];
+    v->id = (uint32_t) i;
+    v->arcs = NULL;
+    v->attrs[0].u = i < m ? 0 : 1;
+  }
+
+  // Initialise arcs randomly
+  srand((unsigned int) time(NULL));
+  GrafArc *a = A;
+
+  for (GrafVertex *v = V; v < V + m; v++) {
+    for (GrafVertex *w = V + m; w < V + m + n; w++) {
+      // TODO: use a better RNG
+      double x = (double) rand() / RAND_MAX;
+      if (x * 100 < p) {
+        a->from = v;
+        a->to = w;
+        a->next = v->arcs;
+        v->arcs = a;
+        a++;
+
+        a->from = w;
+        a->to = v;
+        a->next = w->arcs;
+        v->arcs = a;
+        a++;
+      }
+    }
+  }
+
+  graf->V = V;
+  graf->internal.all_arcs = A;
+  // Dummy pointer that can be free()'d in graf_close()
+  graf->internal.all_strs = calloc(1, sizeof(char));
+  graf_finalize(graf);
+}
+
+void input_rand(char *spec, Graf *graf) {
+  char *ptr = spec;
+  // The spec is known to start with 'rand:' so it has at least 5 chars
+  ptr += 5;
+  if (*ptr == '\0') {
+    goto bad;
+  }
+
+  long m = strtol(ptr, &ptr, 10);
+  if (m <= 0 || *ptr == '\0' || *(ptr++) != ',') {
+    goto bad;
+  }
+
+  long n = strtol(ptr, &ptr, 10);
+  if (n <= 0 || *ptr == '\0' || *(ptr++) != ',') {
+    goto bad;
+  }
+
+  long p = strtol(ptr, &ptr, 10);
+  if (p < 0 || p > 100 || *ptr != '\0') {
+    goto bad;
+  }
+
+  random_bipartite(graf, m, n, p);
+  return;
+
+bad:
+  fprintf(stderr, "[ERROR] Invalid random spec '%s'\n", spec);
+  exit(1);
+}
+
+int main(int argc, char **argv) {
+  if (argc == 1) {
+    printf(
+"Usage:\n"
+"hopcroft-karp <file>\n"
+"hopcroft-karp rand:<m>,<n>,<p>\n"
+"\n"
+"rand:... tells the program to run the algorithm on a randomly generated\n"
+"generated bipartite graph with part sizes m and n, with the proportion of\n"
+"edges given by p (an integer from 0-100, inclusive).\n"
+    );
     return 1;
+  }
+
+  char *path = argv[argc - 1];
+  Graf *graf = calloc(1, sizeof(*graf));
+  GrafStatus status = graf_init(graf);
+  GRAF_ASSERT(status == GRAF_OK);
+
+  if (strncmp(path, "rand:", 5) == 0) {
+    input_rand(path, graf);
+  }
+  else {
+    input_file(path, graf);
   }
 
   State *state = calloc(1, sizeof(*state));
@@ -364,15 +455,13 @@ int main(int argc, char **argv) {
       continue;
     }
 
-    printf("%s - %s\n", ATTR_LABEL(v), ATTR_LABEL(w));
+    printf("%v - %v\n", v, w);
   }
 
   printf("Size: %d\n", state->matching_size);
 
   graf_close(graf);
-  free(V);
-  free(A);
-  free(s);
+  free(graf);
   free(state->queue);
   free(state->iqueue);
   free(state->marked);

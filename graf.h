@@ -81,8 +81,8 @@ typedef enum {
   GRAF_BIPARTITE       = 1 << 2,
 } GrafFlag;
 
-struct _GrafArc;
-struct _GrafVertex;
+struct GrafArc;
+struct GrafVertex;
 
 typedef struct {
   GrafType type;
@@ -90,28 +90,28 @@ typedef struct {
     uint32_t u;
     float f;
     const char *s;
-    struct _GrafVertex *v;
-    struct _GrafArc *a;
+    struct GrafVertex *v;
+    struct GrafArc *a;
   };
 } GrafAttr;
 
-struct _GrafVertex {
+struct GrafVertex {
   uint32_t id;
-  struct _GrafArc *arcs;
+  struct GrafArc *arcs;
   GrafAttr attrs[GRAF_MAX_ATTRS];
   GrafAttr internal_attrs[GRAF_MAX_INTERNAL_ATTRS];
 };
 
-struct _GrafArc {
-  struct _GrafVertex *from;
-  struct _GrafVertex *to;
-  struct _GrafArc *next;
+struct GrafArc {
+  struct GrafVertex *from;
+  struct GrafVertex *to;
+  struct GrafArc *next;
   GrafAttr attrs[GRAF_MAX_ATTRS];
   GrafAttr internal_attrs[GRAF_MAX_INTERNAL_ATTRS];
 };
 
-typedef struct _GrafArc GrafArc;
-typedef struct _GrafVertex GrafVertex;
+typedef struct GrafArc GrafArc;
+typedef struct GrafVertex GrafVertex;
 
 typedef struct {
   int fd;
@@ -144,6 +144,8 @@ typedef struct {
   const char *detailed_err;
 } Graf;
 
+extern Graf *_graf_global;
+
 /*
   Initialise graf to some sane values.
 
@@ -165,7 +167,9 @@ GrafStatus graf_open(const char *path, Graf *graf);
 
 /*
   Load the graph with user-supplied buffers, with sizes requested by
-  graf_open(). Must be called after graf_open() and at most once.
+  graf_open(). Must be called after graf_open() and at most
+  once. Ownership of the buffers should be transferred to graf, and
+  they will be freed in graf_close().
 
   V, A, s must have sizes graf->nv, graf->na, graf->nchars
   respectively. They must be non-NULL even if the size is 0.
@@ -178,8 +182,14 @@ GrafStatus graf_open(const char *path, Graf *graf);
 GrafStatus graf_load(Graf *graf, GrafVertex *V, GrafArc *A, char *s);
 
 /*
-  Close the file opened by graf_open(). This should be called for
-  cleanup.
+  Remaining setup after loading .graf file (or building a graf
+  manually), such as registering custom printf format '%v'.
+*/
+void graf_finalize(Graf *graf);
+
+/*
+  Free the buffers supplied in graf_load(), and close the file opened
+  by graf_open(). This should be called for cleanup.
 
   Note: This can fail if opening the file failed in the first place.
 

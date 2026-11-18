@@ -571,19 +571,26 @@ GrafStatus graf_load(Graf *graf, GrafVertex *V, GrafArc *A, char *s) {
 load_done:
   munmap(buf, (size_t) st.st_size);
 
+  graf_finalize(graf);
+  return status;
+}
+
+void graf_finalize(Graf *graf) {
   if (!_graf_registered_printf) {
     _graf_registered_printf = true;
     GRAF_ASSERT(register_printf_function('v', _printf_vertex_handler, _printf_vertex_arginfo) == 0);
   }
   _graf_global = graf;
-
-  return status;
 }
 
 GrafStatus graf_close(Graf *graf) {
   if (graf == NULL) {
     return GRAF_ERR_USAGE;
   }
+
+  free(graf->V);
+  free(graf->internal.all_arcs);
+  free(graf->internal.all_strs);
 
   int fd = graf->internal.fd;
 
@@ -599,6 +606,7 @@ GrafStatus graf_close(Graf *graf) {
 
   graf->internal.fd = -1;
   _graf_global = NULL;
+
   return GRAF_OK;
 }
 
