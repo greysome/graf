@@ -5,6 +5,7 @@
   in the first and second part.
 */
 
+#define _XOPEN_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -40,10 +41,30 @@ typedef struct {
 } State;
 
 void init_state(uint32_t nv, State *state) {
+  state->queue = calloc(nv, sizeof(*state->queue));
+  state->iqueue = calloc(nv, sizeof(*state->iqueue));
+  state->marked = calloc(nv, sizeof(*state->marked));
+  state->stack = calloc(nv, sizeof(*state->stack));
+  state->bfs_vertex_counts = calloc(nv, sizeof(*state->bfs_vertex_counts));
+  state->bfs_arc_counts = calloc(nv, sizeof(*state->bfs_arc_counts));
+  state->sap_levels = calloc(nv, sizeof(*state->sap_levels));
+  state->sap_counts = calloc(nv, sizeof(*state->sap_counts));
+
   state->n_unmatched_girls = 0;
   state->n_marked = 0;
   state->matching_size = 0;
   state->n_iter = 0;
+}
+
+void cleanup_state(State *state) {
+  free(state->queue);
+  free(state->iqueue);
+  free(state->marked);
+  free(state->stack);
+  free(state->bfs_vertex_counts);
+  free(state->bfs_arc_counts);
+  free(state->sap_levels);
+  free(state->sap_counts);
 }
 
 /*
@@ -403,44 +424,14 @@ bad:
   exit(1);
 }
 
-int main(int argc, char **argv) {
-  if (argc == 1) {
-    printf(
-"Usage:\n"
-"hopcroft-karp <file>\n"
-"hopcroft-karp rand:<m>,<n>,<p>\n"
-"\n"
-"rand:... tells the program to run the algorithm on a randomly generated\n"
-"generated bipartite graph with part sizes m and n, with the proportion of\n"
-"edges given by p (a floating point number between 0 and 1).\n"
-    );
-    return 1;
+void print_tabular_format(State *state) {
+  printf("iter,bfs-vertices,bfs-arcs,sap-level,sap-count\n");
+  for (int i = 0; i < state->n_iter; i++) {
+    printf("%d,%d,%d,%d,%d\n", i, state->bfs_vertex_counts[i], state->bfs_arc_counts[i], state->sap_levels[i], state->sap_counts[i]);
   }
+}
 
-  char *path = argv[argc - 1];
-  Graf *graf = calloc(1, sizeof(*graf));
-  GrafStatus status = graf_init(graf);
-  GRAF_ASSERT(status == GRAF_OK);
-
-  if (strncmp(path, "rand:", 5) == 0) {
-    input_rand(path, graf);
-  }
-  else {
-    input_file(path, graf);
-  }
-
-  State *state = calloc(1, sizeof(*state));
-  state->queue = calloc(graf->nv, sizeof(*state->queue));
-  state->iqueue = calloc(graf->nv, sizeof(*state->iqueue));
-  state->marked = calloc(graf->nv, sizeof(*state->marked));
-  state->stack = calloc(graf->nv, sizeof(*state->stack));
-  state->bfs_vertex_counts = calloc(graf->nv, sizeof(*state->bfs_vertex_counts));
-  state->bfs_arc_counts = calloc(graf->nv, sizeof(*state->bfs_arc_counts));
-  state->sap_levels = calloc(graf->nv, sizeof(*state->sap_levels));
-  state->sap_counts = calloc(graf->nv, sizeof(*state->sap_counts));
-
-  hopcroft_karp(graf, state);
-
+void print_human_format(Graf *graf, State *state) {
   printf(" %-4s  |  %-12s  %-8s  %-9s  %-9s\n", "Iter", "BFS vertices", "BFS arcs", "SAP level", "# SAPs");
   printf("----------------------------------------------------\n");
   for (int i = 0; i < state->n_iter; i++) {
@@ -459,15 +450,59 @@ int main(int argc, char **argv) {
   }
 
   printf("Size: %d\n", state->matching_size);
+}
+
+int main(int argc, char **argv) {
+  if (argc == 1) {
+    printf(
+"Usage: hopcroft-karp [OPTION]... [SPEC]\n"
+"\n"
+"SPEC is either a path, or a string of the form 'rand:<M>,<N>,<P>', which\n"
+"tells the program to generate a random bipartite graph with part sizes M\n"
+"and N, where the proportion of edges given by P (a floating point number\n"
+"between 0 and 1).\n"
+"\n"
+"  -t\toutput algorithm metrics in tabular format, for friendly parsing\n"
+"    \t(does not output the final matching)\n"
+    );
+    return 1;
+  }
+
+  bool flag_tabular_format = false;
+
+  while (1) {
+    int c = getopt(argc, argv, "t");
+    if (c == 't') {
+      flag_tabular_format = true;
+    }
+    else if (c == -1) {
+      break;
+    }
+  }
+
+  char *path = argv[optind];
+  Graf *graf = calloc(1, sizeof(*graf));
+  GrafStatus status = graf_init(graf);
+  GRAF_ASSERT(status == GRAF_OK);
+
+  if (strncmp(path, "rand:", 5) == 0) {
+    input_rand(path, graf);
+  }
+  else {
+    input_file(path, graf);
+  }
+
+  State *state = calloc(1, sizeof(*state));
+  hopcroft_karp(graf, state);
+
+  if (flag_tabular_format) {
+    print_tabular_format(state);
+  }
+  else {
+    print_human_format(graf, state);
+  }
 
   graf_close(graf);
   free(graf);
-  free(state->queue);
-  free(state->iqueue);
-  free(state->marked);
-  free(state->stack);
-  free(state->bfs_vertex_counts);
-  free(state->bfs_arc_counts);
-  free(state->sap_levels);
-  free(state->sap_counts);
+  cleanup_state(state);
 }
