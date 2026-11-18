@@ -2,11 +2,12 @@ CC ?= gcc
 BASE_CFLAGS ?= -std=c23 -Wall -Wextra -Wpedantic -Wconversion \
 	-Wdouble-promotion -Wno-unused-parameter -Wno-unused-function \
 	-Wno-format-extra-args -Wno-format
-DEBUG_CFLAGS := $(BASE_CFLAGS) -fsanitize=address,undefined -g3 --coverage -fprofile-abs-path -DASSERT_TRAP
+DEBUG_CFLAGS := $(BASE_CFLAGS) -fsanitize=address,undefined -g3 -DASSERT_TRAP
+COVERAGE_CFLAGS := $(BASE_CFLAGS) --coverage -fprofile-abs-path
 RELEASE_CFLAGS := $(BASE_CFLAGS) -O2
 programs := $(patsubst programs/%.c,$(BUILD_DIR)/bin/%,$(wildcard programs/*.c))
 
-.PHONY: all debug release afl test fuzz dist build clean distclean
+.PHONY: all debug release coverage afl test fuzz dist build clean distclean
 
 all: release
 
@@ -15,6 +16,9 @@ debug:
 
 release:
 	$(MAKE) BUILD_DIR=build/release CFLAGS='$(RELEASE_CFLAGS)' build
+
+coverage:
+	$(MAKE) BUILD_DIR=build/coverage CFLAGS='$(COVERAGE_CFLAGS)' build
 
 afl:
 	$(MAKE) CC=afl-cc BUILD_DIR=build/afl CFLAGS='$(RELEASE_CFLAGS)' build
