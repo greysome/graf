@@ -11,8 +11,9 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-  if (graf_open(argv[1], &graf) != GRAF_OK) {
-    fprintf(stderr, "%s\n", graf.detailed_err);
+  GrafStatus status = graf_open(argv[1], &graf);
+  if (status != GRAF_OK) {
+    fprintf(stderr, "graf_open() failed %s\n", graf_error_info(status, graf.detailed_err));
     graf_close(&graf);
     return 2;
   }
@@ -35,8 +36,9 @@ int main(int argc, char **argv) {
     goto cleanup;
   }
 
-  if (graf_load(&graf, V, A, s) != GRAF_OK) {
-    fprintf(stderr, "%s\n", graf.detailed_err);
+  status = graf_load(&graf, V, A, s);
+  if (status != GRAF_OK) {
+    fprintf(stderr, "graf_open() failed %s\n", graf_error_info(status, graf.detailed_err));
     graf_close(&graf);
     exit_code = 2;
     goto cleanup;

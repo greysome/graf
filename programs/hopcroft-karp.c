@@ -309,7 +309,7 @@ int main(int argc, char **argv) {
 "hopcroft-karp rand:<A>,<B>,<p>,<n>\n"
 "\n"
 "rand:... tells the program to run the algorithm n times, each time on\n"
-"a randomly generated bipartite graph with part sizes A,B, with the\n"
+"a randomly generated bipartite graph with part sizes A and B, with the\n"
 "proportion of edges given by p (an integer from 0-100, inclusive).\n"
     );
     return 1;
@@ -324,7 +324,7 @@ int main(int argc, char **argv) {
 
   status = graf_open(path, graf);
   if (status != GRAF_OK) {
-    fprintf(stderr, "%s", graf->detailed_err);
+    fprintf(stderr, "[ERROR] graf_open() failed %s\n", graf_error_info(status, graf->detailed_err));
     return 1;
   }
 
@@ -334,7 +334,7 @@ int main(int argc, char **argv) {
 
   status = graf_load(graf, V, A, s);
   if (status != GRAF_OK) {
-    fprintf(stderr, "%s", graf->detailed_err);
+    fprintf(stderr, "[ERROR] graf_load() failed %s\n", graf_error_info(status, graf->detailed_err));
     return 1;
   }
 

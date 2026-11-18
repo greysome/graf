@@ -2,6 +2,7 @@
 #  error "GRAF is currently POSIX-only"
 #endif
 
+#include <errno.h>
 #include <fcntl.h>
 #include <printf.h>
 #include <stdint.h>
@@ -599,4 +600,20 @@ GrafStatus graf_close(Graf *graf) {
   graf->internal.fd = -1;
   _graf_global = NULL;
   return GRAF_OK;
+}
+
+char *graf_error_info(GrafStatus status, const char *detailed_err) {
+  static char err[128];
+
+  if (status == GRAF_OK || detailed_err == NULL) {
+    snprintf(err, 128, "(graf: )");
+  }
+  else if (status != GRAF_ERR_SYS) {
+    snprintf(err, 128, "(graf: %s)", detailed_err);
+  }
+  else {
+    snprintf(err, 128, "(graf: %s, OS: %s)", detailed_err, strerror(errno));
+  }
+
+  return err;
 }

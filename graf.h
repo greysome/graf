@@ -190,4 +190,17 @@ GrafStatus graf_load(Graf *graf, GrafVertex *V, GrafArc *A, char *s);
 */
 GrafStatus graf_close(Graf *graf);
 
+/*
+  Return a string containing a message in one of two forms:
+
+  '(graf: `detailed_err`, OS: ...)' or
+  '(graf: `detailed_err`)',
+
+  depending on whether status == GRAF_ERR_SYS. If status == GRAF_OK or
+  detailed_err == NULL, then then the string simply be
+
+  '(graf: )'.
+*/
+char *graf_error_info(GrafStatus status, const char *detailed_err);
+
 #endif
