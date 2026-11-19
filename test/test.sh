@@ -31,7 +31,7 @@ run_test() {
 run_test "${mydir}/graphs/valid-empty.graf"                   'no errors'
 run_test "${mydir}/graphs/K4-vertex-labels.graf"              'no errors'
 run_test "${mydir}/graphs/bad-header-short.graf"              'graf_open() failed (graf: bad header)'
-run_test "${mydir}/graphs/bad-header-magic.graf"              'graf_open() failed (graf: bad header)'
+run_test "${mydir}/graphs/bad-header-magic.graf"              'graf_open() failed (graf: not a .graf file)'
 run_test "${mydir}/graphs/body-abrupt-eof.graf"               'graf_load() failed (graf: abrupt end-of-file)'
 run_test "${mydir}/graphs/unknown-segment.graf"               'graf_load() failed (graf: unknown segment)'
 run_test "${mydir}/graphs/vertex-record-abrupt-eof.graf"      'graf_load() failed (graf: abrupt end-of-file)'

@@ -62,6 +62,7 @@ const char *GRAF_READ_FAIL = "read() failed";
 const char *GRAF_STAT_FAIL = "stat() failed";
 const char *GRAF_MMAP_FAIL = "mmap() failed";
 const char *GRAF_CLOSE_FAIL = "close() failed";
+const char *GRAF_NOT_A_GRAF_FILE = "not a .graf file";
 const char *GRAF_BAD_HEADER = "bad header";
 const char *GRAF_BAD_ATTR_IDX = "attribute index out of bounds";
 const char *GRAF_ABRUPT_EOF = "abrupt end-of-file";
@@ -427,7 +428,7 @@ GrafStatus graf_open(const char *path, Graf *graf) {
   GrafSlice header_slice = {header, sizeof(header)};
 
   if (strncmp(header, "graf", 4) != 0) {
-    goto bad_header;
+    goto not_graf;
   }
   _graf_slice_advance(&header_slice, 4);
 
@@ -450,6 +451,10 @@ GrafStatus graf_open(const char *path, Graf *graf) {
   }
 
   return GRAF_OK;
+
+not_graf:
+  graf->detailed_err = GRAF_NOT_A_GRAF_FILE;
+  return GRAF_ERR_PARSE;
 
 bad_header:
   graf->detailed_err = GRAF_BAD_HEADER;
