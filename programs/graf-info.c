@@ -27,29 +27,20 @@ int main(int argc, char **argv) {
   GrafArc *A = calloc(na, sizeof(*A));
   char *s = calloc(nchars, sizeof(*s));
 
-  int exit_code = 0;
-
   if (V == NULL || A == NULL || s == NULL) {
     fprintf(stderr, "allocation failed\n");
     graf_close(&graf);
-    exit_code = 1;
-    goto cleanup;
+    return 1;
   }
 
   status = graf_load(&graf, V, A, s);
   if (status != GRAF_OK) {
-    fprintf(stderr, "graf_open() failed %s\n", graf_error_info(status, graf.detailed_err));
+    fprintf(stderr, "graf_load() failed %s\n", graf_error_info(status, graf.detailed_err));
     graf_close(&graf);
-    exit_code = 2;
-    goto cleanup;
+    return 2;
   }
 
   fprintf(stderr, "ok!\n");
   graf_close(&graf);
-
-cleanup:
-  free(V);
-  free(A);
-  free(s);
-  return exit_code;
+  return 0;
 }

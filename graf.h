@@ -168,8 +168,8 @@ GrafStatus graf_open(const char *path, Graf *graf);
 /*
   Load the graph with user-supplied buffers, with sizes requested by
   graf_open(). Must be called after graf_open() and at most
-  once. Ownership of the buffers should be transferred to graf, and
-  they will be freed in graf_close().
+  once. Ownership of the buffers must be transferred to graf, and they
+  will be freed in graf_close().
 
   V, A, s must have sizes graf->nv, graf->na, graf->nchars
   respectively. They must be non-NULL even if the size is 0.
