@@ -56,7 +56,6 @@ extern const char *GRAF_STAT_FAIL;
 extern const char *GRAF_MMAP_FAIL;
 extern const char *GRAF_CLOSE_FAIL;
 extern const char *GRAF_BAD_HEADER;
-extern const char *GRAF_NOT_OPENED;
 extern const char *GRAF_BAD_ATTR_IDX;
 extern const char *GRAF_ABRUPT_EOF;
 extern const char *GRAF_UNKNOWN_SEG;
@@ -68,6 +67,7 @@ extern const char *GRAF_UNIMPLEMENTED;
 extern const char *GRAF_ATTR_ALREADY_DEFINED;
 extern const char *GRAF_BIPARTITE_BAD_PART_SIZES;
 extern const char *GRAF_BIPARTITE_BAD_ARC;
+extern const char *GRAF_NOT_OPENED;
 
 typedef enum {
   GRAF_UNUSED,
@@ -160,7 +160,7 @@ GrafStatus graf_init(Graf *graf);
 
   Errors:
   GRAF_ERR_USAGE if a null pointer was passed
-  GRAF_ERR_SYS if cannot open or read file
+  GRAF_ERR_SYS if cannot open() or read() file
   GRAF_ERR_PARSE if GRAF header is malformed
 */
 GrafStatus graf_open(const char *path, Graf *graf);
@@ -176,7 +176,7 @@ GrafStatus graf_open(const char *path, Graf *graf);
 
   Errors:
   GRAF_ERR_USAGE if a null pointer was psased
-  GRAF_ERR_SYS if cannot mmap or close file
+  GRAF_ERR_SYS if cannot mmap() or close() file
   GRAF_ERR_PARSE if GRAF body is malformed
 */
 GrafStatus graf_load(Graf *graf, GrafVertex *V, GrafArc *A, char *s);
@@ -188,15 +188,14 @@ GrafStatus graf_load(Graf *graf, GrafVertex *V, GrafArc *A, char *s);
 void graf_finalize(Graf *graf);
 
 /*
-  Free the buffers supplied in graf_load(), and close the file opened
-  by graf_open(). This should be called for cleanup.
-
-  Note: This can fail if opening the file failed in the first place.
+  Perform cleanup: free the buffers supplied in graf_load(), close the
+  file opened by graf_open() (if there was one), and unset
+  _graf_global. It is safe to call multiple times, although usually
+  there is rarely a need to handle close() failure.
 
   Errors:
-  GRAF_ERR_USAGE if a null pointer was passed, or a file was not
-  opened in the first place
-  GRAF_ERR_SYS if close fails
+  GRAF_ERR_USAGE if a null pointer was passed
+  GRAF_ERR_SYS if cannot close() file
 */
 GrafStatus graf_close(Graf *graf);
 

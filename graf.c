@@ -63,7 +63,6 @@ const char *GRAF_STAT_FAIL = "stat() failed";
 const char *GRAF_MMAP_FAIL = "mmap() failed";
 const char *GRAF_CLOSE_FAIL = "close() failed";
 const char *GRAF_BAD_HEADER = "bad header";
-const char *GRAF_NOT_OPENED = "file not opened";
 const char *GRAF_BAD_ATTR_IDX = "attribute index out of bounds";
 const char *GRAF_ABRUPT_EOF = "abrupt end-of-file";
 const char *GRAF_UNKNOWN_SEG = "unknown segment";
@@ -75,6 +74,7 @@ const char *GRAF_UNIMPLEMENTED = "not implemented yet";
 const char *GRAF_ATTR_ALREADY_DEFINED = "attribute already defined";
 const char *GRAF_BIPARTITE_BAD_PART_SIZES = "bad part sizes in bipartite segment";
 const char *GRAF_BIPARTITE_BAD_ARC = "bad arc in bipartite segment";
+const char *GRAF_NOT_OPENED = "file not opened";
 
 typedef struct {
   const char *s;
@@ -592,20 +592,23 @@ GrafStatus graf_close(Graf *graf) {
   free(graf->internal.all_arcs);
   free(graf->internal.all_strs);
 
+  graf->V = NULL;
+  graf->internal.all_arcs = NULL;
+  graf->internal.all_strs = NULL;
+  _graf_global = NULL;
+
   int fd = graf->internal.fd;
+  // Reset the fd even if close() fails, since that is usually not
+  // handled anyway.
+  graf->internal.fd = -1;
 
   if (fd == -1) {
-    graf->detailed_err = GRAF_NOT_OPENED;
-    return GRAF_ERR_USAGE;
+    return GRAF_OK;
   }
-
-  if (close(fd) == -1) {
+  else if (close(fd) == -1) {
     graf->detailed_err = GRAF_CLOSE_FAIL;
     return GRAF_ERR_SYS;
   }
-
-  graf->internal.fd = -1;
-  _graf_global = NULL;
 
   return GRAF_OK;
 }
