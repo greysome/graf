@@ -56,7 +56,11 @@ void init_state(uint32_t nv, State *state) {
   state->n_iter = 0;
 }
 
-void cleanup_state(State *state) {
+void cleanup(Graf *graf, State *state) {
+  free(graf->V);
+  free(graf->internal.all_arcs);
+  free(graf->internal.all_strs);
+
   free(state->queue);
   free(state->iqueue);
   free(state->marked);
@@ -65,6 +69,7 @@ void cleanup_state(State *state) {
   free(state->bfs_arc_counts);
   free(state->sap_levels);
   free(state->sap_counts);
+  free(state);
 }
 
 /*
@@ -503,7 +508,7 @@ int main(int argc, char **argv) {
   }
 
   graf_close(graf);
+  cleanup(graf, state);
   free(graf);
-  cleanup_state(state);
   return 0;
 }

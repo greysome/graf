@@ -188,10 +188,9 @@ GrafStatus graf_load(Graf *graf, GrafVertex *V, GrafArc *A, char *s);
 void graf_finalize(Graf *graf);
 
 /*
-  Perform cleanup: free the buffers supplied in graf_load(), close the
-  file opened by graf_open() (if there was one), and unset
-  _graf_global. It is safe to call multiple times, although usually
-  there is rarely a need to handle close() failure.
+  Perform cleanup: close the file opened by graf_open() (if there was
+  one), and unset _graf_global. The buffers provided in graf_load()
+  must be manually freed by the user.
 
   Errors:
   GRAF_ERR_USAGE if a null pointer was passed

@@ -6,12 +6,12 @@ _ :: c
 
 foreign import lib "system:graf"
 
-GRAF_VERSION            :: 0
-GRAF_HEADER_SIZE        :: 28
-GRAF_MAX_ATTRS          :: 2
-GRAF_MAX_INTERNAL_ATTRS :: 3
+VERSION            :: 0
+HEADER_SIZE        :: 28
+MAX_ATTRS          :: 2
+MAX_INTERNAL_ATTRS :: 3
 
-GrafSegCodes :: enum u32 {
+SegCodes :: enum u32 {
   VERTEX_LABEL = 0,
   ARC_LABEL    = 1,
   BIPARTITE    = 2,
@@ -19,7 +19,7 @@ GrafSegCodes :: enum u32 {
   ARC_ARRAY    = 4294967295,
 }
 
-GrafStatus :: enum u32 {
+Status :: enum u32 {
   OK                = 0,
   ERR_SYS           = 1,
   ERR_PARSE         = 2,
@@ -27,50 +27,50 @@ GrafStatus :: enum u32 {
   ERR_UNIMPLEMENTED = 4,
 }
 
-GrafType :: enum u32 {
+Type :: enum u32 {
   UNUSED = 0,
   UINT   = 1,
   STR    = 2,
 }
 
-GrafFlag :: enum u32 {
+Flag :: enum u32 {
   VERTEX_LABELLED = 0,
   ARC_LABELLED    = 1,
   BIPARTITE       = 2,
 }
 
-GrafFlags :: bit_set[GrafFlag; u32]
+Flags :: bit_set[Flag; u64]
 
-GrafAttr :: struct {
-  type: GrafType,
+Attr :: struct {
+  type: Type,
 
   using _: struct #raw_union {
     u: u32,
     f: f32,
     s: cstring,
-    v: ^GrafVertex,
-    a: ^GrafArc,
+    v: ^Vertex,
+    a: ^Arc,
   },
 }
 
-GrafArc :: struct {
-  from:           ^GrafVertex,
-  to:             ^GrafVertex,
-  next:           ^GrafArc,
-  attrs:          [2]GrafAttr,
-  internal_attrs: [3]GrafAttr,
+Arc :: struct {
+  from:           ^Vertex,
+  to:             ^Vertex,
+  next:           ^Arc,
+  attrs:          [2]Attr,
+  internal_attrs: [3]Attr,
 }
 
-GrafVertex :: struct {
+Vertex :: struct {
   id:             u32,
-  arcs:           ^GrafArc,
-  attrs:          [2]GrafAttr,
-  internal_attrs: [3]GrafAttr,
+  arcs:           ^Arc,
+  attrs:          [2]Attr,
+  internal_attrs: [3]Attr,
 }
 
-GrafInternal :: struct {
+Internal :: struct {
   fd:              i32,
-  all_arcs:        [^]GrafArc,
+  all_arcs:        [^]Arc,
   all_strs:        cstring,
   all_strs_offset: c.size_t,
 }
@@ -80,23 +80,26 @@ Graf :: struct {
   na:                        u32,
   v_attr_count:              u32,
   a_attr_count:              u32,
-  char_count:                u32,
-  V:                         [^]GrafVertex,
-  segment_flags:             GrafFlags,
-  v_attr_types:              [2]GrafType,
-  a_attr_types:              [2]GrafType,
+  nchars:                    u32,
+  V:                         [^]Vertex,
+  segment_flags:             Flags,
+  v_attr_types:              [2]Type,
+  a_attr_types:              [2]Type,
   label_v_attr_idx:          u32,
   label_a_attr_idx:          u32,
   bipartite_parts:           [2]u32,
   bipartite_part_v_attr_idx: u32,
-  internal:                  GrafInternal,
+  internal:                  Internal,
   detailed_err:              cstring,
 }
 
 @(default_calling_convention="c")
+@(link_prefix="graf_")
 foreign lib {
-  graf_init :: proc(graf: ^Graf) -> GrafStatus ---
-  graf_open :: proc(path: cstring, graf: ^Graf) -> GrafStatus ---
-  graf_load :: proc(graf: ^Graf, V: [^]GrafVertex, A: [^]GrafArc, s: cstring) -> GrafStatus ---
-  graf_close :: proc(graf: ^Graf) -> GrafStatus ---
+  init       :: proc(G: ^Graf) -> Status ---
+  open       :: proc(path: cstring, G: ^Graf) -> Status ---
+  load       :: proc(G: ^Graf, V: [^]Vertex, A: [^]Arc, s: cstring) -> Status ---
+  finalize   :: proc(G: ^Graf) ---
+  close      :: proc(G: ^Graf) -> Status ---
+  error_info :: proc(status: Status, detailed_err: cstring) -> cstring ---
 }

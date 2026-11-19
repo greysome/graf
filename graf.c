@@ -588,19 +588,11 @@ GrafStatus graf_close(Graf *graf) {
     return GRAF_ERR_USAGE;
   }
 
-  free(graf->V);
-  free(graf->internal.all_arcs);
-  free(graf->internal.all_strs);
-
-  graf->V = NULL;
-  graf->internal.all_arcs = NULL;
-  graf->internal.all_strs = NULL;
-  _graf_global = NULL;
-
   int fd = graf->internal.fd;
   // Reset the fd even if close() fails, since that is usually not
   // handled anyway.
   graf->internal.fd = -1;
+  _graf_global = NULL;
 
   if (fd == -1) {
     return GRAF_OK;
