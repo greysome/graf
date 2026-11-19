@@ -5,7 +5,8 @@ BASE_CFLAGS ?= -std=c23 -Wall -Wextra -Wpedantic -Wconversion \
 DEBUG_CFLAGS := $(BASE_CFLAGS) -fsanitize=address,undefined -g3 -DASSERT_TRAP
 COVERAGE_CFLAGS := $(BASE_CFLAGS) --coverage -fprofile-abs-path
 RELEASE_CFLAGS := $(BASE_CFLAGS) -O2
-programs := $(patsubst programs/%.c,$(BUILD_DIR)/bin/%,$(wildcard programs/*.c))
+c_programs := $(patsubst programs/%.c,$(BUILD_DIR)/bin/%,$(wildcard programs/*.c))
+odin_programs := $(patsubst programs/%.odin,$(BUILD_DIR)/bin/%,$(wildcard programs/*.odin))
 
 .PHONY: all debug release coverage afl test fuzz dist build clean distclean
 
@@ -32,7 +33,7 @@ fuzz: afl
 dist: release
 	./dist.sh
 
-build: $(BUILD_DIR)/libgraf.a $(programs)
+build: $(BUILD_DIR)/libgraf.a $(c_programs) $(odin_programs)
 
 clean:
 	rm -rf build
@@ -48,3 +49,7 @@ $(BUILD_DIR)/libgraf.a: graf.c graf.h
 $(BUILD_DIR)/bin/%: programs/%.c $(BUILD_DIR)/libgraf.a
 	mkdir -p $(BUILD_DIR)/bin
 	$(CC) $(CFLAGS) -I. $^ -o $@
+
+$(BUILD_DIR)/bin/%: programs/%.odin $(BUILD_DIR)/libgraf.a
+	mkdir -p $(BUILD_DIR)/bin
+	odin build $< -collection:graf=./graf-odin -extra-linker-flags:"-L${BUILD_DIR}" -out:$@ -file
