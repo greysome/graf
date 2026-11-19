@@ -453,7 +453,19 @@ void print_human_format(Graf *graf, State *state) {
 }
 
 int main(int argc, char **argv) {
-  if (argc == 1) {
+  bool flag_tabular_format = false;
+
+  while (1) {
+    int c = getopt(argc, argv, "t");
+    if (c == 't') {
+      flag_tabular_format = true;
+    }
+    else if (c == -1) {
+      break;
+    }
+  }
+
+  if (optind >= argc) {
     printf(
 "Usage: hopcroft-karp [OPTION]... [SPEC]\n"
 "\n"
@@ -466,18 +478,6 @@ int main(int argc, char **argv) {
 "    \t(does not output the final matching)\n"
     );
     return 1;
-  }
-
-  bool flag_tabular_format = false;
-
-  while (1) {
-    int c = getopt(argc, argv, "t");
-    if (c == 't') {
-      flag_tabular_format = true;
-    }
-    else if (c == -1) {
-      break;
-    }
   }
 
   char *path = argv[optind];
@@ -505,4 +505,5 @@ int main(int argc, char **argv) {
   graf_close(graf);
   free(graf);
   cleanup_state(state);
+  return 0;
 }
