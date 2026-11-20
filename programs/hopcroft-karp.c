@@ -6,6 +6,7 @@
 */
 
 #define _XOPEN_SOURCE
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -36,6 +37,8 @@ typedef struct {
   int matching_size;
   int *bfs_vertex_counts;
   int *bfs_arc_counts;
+  int *dfs_vertex_counts;
+  int *dfs_arc_counts;
   int *sap_levels;
   int *sap_counts;
 } State;
@@ -45,10 +48,14 @@ void init_state(uint32_t nv, State *state) {
   state->iqueue = calloc(nv, sizeof(*state->iqueue));
   state->marked = calloc(nv, sizeof(*state->marked));
   state->stack = calloc(nv, sizeof(*state->stack));
-  state->bfs_vertex_counts = calloc(nv, sizeof(*state->bfs_vertex_counts));
-  state->bfs_arc_counts = calloc(nv, sizeof(*state->bfs_arc_counts));
-  state->sap_levels = calloc(nv, sizeof(*state->sap_levels));
-  state->sap_counts = calloc(nv, sizeof(*state->sap_counts));
+
+  size_t max_iters = (size_t) ceil(sqrt(4.0 * nv));
+  state->bfs_vertex_counts = calloc(max_iters, sizeof(*state->bfs_vertex_counts));
+  state->bfs_arc_counts = calloc(max_iters, sizeof(*state->bfs_arc_counts));
+  state->dfs_vertex_counts = calloc(max_iters, sizeof(*state->dfs_vertex_counts));
+  state->dfs_arc_counts = calloc(max_iters, sizeof(*state->dfs_arc_counts));
+  state->sap_levels = calloc(max_iters, sizeof(*state->sap_levels));
+  state->sap_counts = calloc(max_iters, sizeof(*state->sap_counts));
 
   state->n_unmatched_girls = 0;
   state->n_marked = 0;
@@ -67,6 +74,8 @@ void cleanup(Graf *graf, State *state) {
   free(state->stack);
   free(state->bfs_vertex_counts);
   free(state->bfs_arc_counts);
+  free(state->dfs_vertex_counts);
+  free(state->dfs_arc_counts);
   free(state->sap_levels);
   free(state->sap_counts);
   free(state);
@@ -252,6 +261,7 @@ next_sap:
 
 H12:
   state->stack[--cur_level] = b;
+  state->dfs_vertex_counts[state->n_iter]++;
   GRAF_DEBUG("- level %d: visit boy: %v\n", cur_level, b);
 
   // Find a girl preceding b by one level, that hasn't been visited
@@ -273,6 +283,8 @@ H13:
       }
     }
 
+    state->dfs_arc_counts[state->n_iter]++;
+
     ATTR_B_LINK(b) = ATTR_B_NEXT(a);
     g = a->from;
 
@@ -285,6 +297,8 @@ H13:
       break;
     }
   }
+
+  state->dfs_vertex_counts[state->n_iter]++;
 
   // The eligible girl g is matched, so we have not reached the start
   // of the SAP. Go down one level
@@ -430,17 +444,23 @@ bad:
 }
 
 void print_tabular_format(State *state) {
-  printf("iter,bfs-vertices,bfs-arcs,sap-level,sap-count\n");
+  printf("iter,bfs-vertices,bfs-arcs,dfs-vertices,dfs-arcs,sap-level,sap-count\n");
   for (int i = 0; i < state->n_iter; i++) {
-    printf("%d,%d,%d,%d,%d\n", i, state->bfs_vertex_counts[i], state->bfs_arc_counts[i], state->sap_levels[i], state->sap_counts[i]);
+    printf("%d,%d,%d,%d,%d,%d,%d\n", i,
+           state->bfs_vertex_counts[i], state->bfs_arc_counts[i],
+           state->dfs_vertex_counts[i], state->dfs_arc_counts[i],
+           state->sap_levels[i], state->sap_counts[i]);
   }
 }
 
 void print_human_format(Graf *graf, State *state) {
-  printf(" %-4s  |  %-12s  %-8s  %-9s  %-9s\n", "Iter", "BFS vertices", "BFS arcs", "SAP level", "# SAPs");
-  printf("----------------------------------------------------\n");
+  printf(" %-4s  |  %-12s  %-8s  %-12s  %-8s  %-9s  %-9s\n", "Iter", "BFS vertices", "BFS arcs", "DFS vertices", "DFS arcs", "SAP level", "# SAPs");
+  printf("----------------------------------------------------------------------------\n");
   for (int i = 0; i < state->n_iter; i++) {
-    printf(" %4d  |  %-12d  %-8d  %-9d  %-9d\n", i, state->bfs_vertex_counts[i], state->bfs_arc_counts[i], state->sap_levels[i], state->sap_counts[i]);
+    printf(" %4d  |  %-12d  %-8d  %-12d  %-8d  %-9d  %-9d\n", i,
+           state->bfs_vertex_counts[i], state->bfs_arc_counts[i],
+           state->dfs_vertex_counts[i], state->dfs_arc_counts[i],
+           state->sap_levels[i], state->sap_counts[i]);
   }
 
   printf("\nMaximum matching:\n");
@@ -454,7 +474,7 @@ void print_human_format(Graf *graf, State *state) {
     printf("%v - %v\n", v, w);
   }
 
-  printf("Size: %d\n", state->matching_size);
+  printf("\nSize: %d\n", state->matching_size);
 }
 
 int main(int argc, char **argv) {
