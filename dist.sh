@@ -8,7 +8,9 @@ cp LICENSE dist/
 cp graf.h dist/include/
 cp build/release/libgraf.a dist/lib/
 cp -R build/release/bin/ dist/
+cp -R graphs/ dist/graphs/
 cp -R odin/ dist/odin/
+rm -rf dist/graphs/generators/__pycache__
 
 os=$(uname -s | tr '[:upper:]' '[:lower:]')
 arch=$(uname -m)

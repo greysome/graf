@@ -18,10 +18,12 @@ for each edge.
 
 # Repo contents
 
-This repository contains a reference implementation of the GRAF parser
-and the `graf-info` utility. The release includes the compiled library
-`libgraf.a`, a public header `graf.h` with documented routines, and
-the `graf-info` executable.
+This repository contains the following:
+- A reference implementation of the GRAF parser (`graf.c`), which is
+  built into `libgraf.a` in the distribution
+- C headers, and Odin bindings (`graf.h`, `odin/`)
+- Utility and algorithmic programs (`programs/`)
+- Example graphs (`graphs/`)
 
 # GRAF file format
 

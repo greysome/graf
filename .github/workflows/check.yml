@@ -12,7 +12,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
-          sudo apt-get install -y gcc-14
+          sudo apt-get install -y gcc-14 odin
           echo "CC=gcc-14" >> $GITHUB_ENV
 
       - name: Test
@@ -22,5 +22,5 @@ jobs:
       - name: Coverage
         run: |
           make coverage
-          gcov-14 build/debug/*.gcda
+          gcov-14 build/coverage/*.gcda
           cat graf.c.gcov

@@ -1,5 +1,5 @@
 CC ?= gcc
-BASE_CFLAGS ?= -std=c23 -lm -Wall -Wextra -Wpedantic -Wconversion \
+BASE_CFLAGS ?= -std=c23 -Wall -Wextra -Wpedantic -Wconversion \
 	-Wdouble-promotion -Wno-unused-parameter -Wno-unused-function \
 	-Wno-format-extra-args -Wno-format
 DEBUG_CFLAGS := $(BASE_CFLAGS) -fsanitize=address,undefined -g3 -DASSERT_TRAP
@@ -53,7 +53,7 @@ $(BUILD_DIR)/libgraf.a: graf.c graf.h
 
 $(BUILD_DIR)/bin/%: programs/%.c $(BUILD_DIR)/libgraf.a
 	mkdir -p $(BUILD_DIR)/bin
-	$(CC) $(CFLAGS) -I. $^ -o $@
+	$(CC) $(CFLAGS) -I. $^ -o $@ -lm
 
 $(BUILD_DIR)/bin/%: programs/%.odin $(BUILD_DIR)/libgraf.a
 	mkdir -p $(BUILD_DIR)/bin
