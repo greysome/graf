@@ -1,7 +1,9 @@
 test/fuzz-out/
+test/outputs/
 build/
 dist/
 graphs/generators/__pycache__/
 *.tar.gz
 *.gcda
 *.gcno
+*.gcov
