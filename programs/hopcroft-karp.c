@@ -340,7 +340,7 @@ H13:
 void input_file(char *path, Graf *graf) {
   GrafStatus status = graf_open(path, graf);
   if (status != GRAF_OK) {
-    fprintf(stderr, "[ERROR] graf_open() failed %s\n", graf_error_info(graf, status));
+    fprintf(stderr, "graf_open() failed %s\n", graf_error_info(graf, status));
     exit(1);
   }
 
@@ -350,7 +350,7 @@ void input_file(char *path, Graf *graf) {
 
   status = graf_load(graf, V, A, s);
   if (status != GRAF_OK) {
-    fprintf(stderr, "[ERROR] graf_load() failed %s\n", graf_error_info(graf, status));
+    fprintf(stderr, "graf_load() failed %s\n", graf_error_info(graf, status));
     exit(1);
   }
 }
@@ -421,12 +421,12 @@ void input_rand(char *spec, Graf *graf) {
   }
 
   long m = strtol(ptr, &ptr, 10);
-  if (m <= 0 || *ptr == '\0' || *(ptr++) != ',') {
+  if (m <= 0 || m > UINT32_MAX || *ptr == '\0' || *(ptr++) != ',') {
     goto bad;
   }
 
   long n = strtol(ptr, &ptr, 10);
-  if (n <= 0 || *ptr == '\0' || *(ptr++) != ',') {
+  if (n <= 0 || n > UINT32_MAX || *ptr == '\0' || *(ptr++) != ',') {
     goto bad;
   }
 
@@ -435,11 +435,22 @@ void input_rand(char *spec, Graf *graf) {
     goto bad;
   }
 
+  if (m > UINT32_MAX - n) {
+    fprintf(stderr, "too many vertices: '%s'\n", spec);
+    exit(1);
+  }
+
+  uint64_t na = 2 * (uint64_t) m * (uint64_t) n;
+  if (na > UINT32_MAX) {
+    fprintf(stderr, "too many arcs: '%s'\n", spec);
+    exit(1);
+  }
+
   random_bipartite(graf, m, n, p);
   return;
 
 bad:
-  fprintf(stderr, "[ERROR] Invalid random spec '%s'\n", spec);
+  fprintf(stderr, "invalid random spec '%s'\n", spec);
   exit(1);
 }
 
