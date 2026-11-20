@@ -127,7 +127,7 @@ GrafStatus hopcroft_karp(Graf *graf, State *state) {
   GRAF_ASSERT(state != NULL);
 
   if (!(graf->segment_flags & GRAF_BIPARTITE)) {
-    graf->detailed_err = GRAF_BAD_GRAPH;
+    graf->internal.detailed_err = GRAF_BAD_GRAPH;
     return GRAF_ERR_USAGE;
   }
 
@@ -326,7 +326,7 @@ H13:
 void input_file(char *path, Graf *graf) {
   GrafStatus status = graf_open(path, graf);
   if (status != GRAF_OK) {
-    fprintf(stderr, "[ERROR] graf_open() failed %s\n", graf_error_info(status, graf->detailed_err));
+    fprintf(stderr, "[ERROR] graf_open() failed %s\n", graf_error_info(graf, status));
     exit(1);
   }
 
@@ -336,7 +336,7 @@ void input_file(char *path, Graf *graf) {
 
   status = graf_load(graf, V, A, s);
   if (status != GRAF_OK) {
-    fprintf(stderr, "[ERROR] graf_load() failed %s\n", graf_error_info(status, graf->detailed_err));
+    fprintf(stderr, "[ERROR] graf_load() failed %s\n", graf_error_info(graf, status));
     exit(1);
   }
 }
@@ -345,7 +345,7 @@ void random_bipartite(Graf *graf, long m, long n, double p) {
   graf->nv = (uint32_t) (m + n);
   graf->a_attr_count = 0;
   graf->nchars = 0;
-  graf->detailed_err = NULL;
+  graf->internal.detailed_err = NULL;
   graf->internal.fd = -1;
 
   graf->segment_flags = GRAF_BIPARTITE;

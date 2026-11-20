@@ -15,15 +15,12 @@ jobs:
           sudo apt-get install -y gcc-14
           echo "CC=gcc-14" >> $GITHUB_ENV
 
-      - name: Build
-        run:
-          make debug
-
       - name: Test
         run:
-          ./test/test.sh
+          make test
 
       - name: Coverage
         run: |
+          make coverage
           gcov-14 build/debug/*.gcda
           cat graf.c.gcov

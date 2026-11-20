@@ -6,7 +6,7 @@ DEBUG_CFLAGS := $(BASE_CFLAGS) -fsanitize=address,undefined -g3 -DASSERT_TRAP
 COVERAGE_CFLAGS := $(BASE_CFLAGS) --coverage -fprofile-abs-path
 RELEASE_CFLAGS := $(BASE_CFLAGS) -O2
 
-BASE_ODIN_FLAGS := -collection:graf=./graf-odin -file
+BASE_ODIN_FLAGS := -collection:graf=./odin -file
 DEBUG_ODIN_FLAGS := $(BASE_ODIN_FLAGS) -extra-assembler-flags:"-fsanitize=address,undefined" -debug
 DEBUG_ODIN_LINK_FLAGS = -fsanitize=address,undefined
 

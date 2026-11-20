@@ -57,15 +57,15 @@ Arc :: struct {
   from:           ^Vertex,
   to:             ^Vertex,
   next:           ^Arc,
-  attrs:          [2]Attr,
-  internal_attrs: [3]Attr,
+  attrs:          [MAX_ATTRS]Attr,
+  internal_attrs: [MAX_INTERNAL_ATTRS]Attr,
 }
 
 Vertex :: struct {
   id:             u32,
   arcs:           ^Arc,
-  attrs:          [2]Attr,
-  internal_attrs: [3]Attr,
+  attrs:          [MAX_ATTRS]Attr,
+  internal_attrs: [MAX_INTERNAL_ATTRS]Attr,
 }
 
 Internal :: struct {
@@ -73,6 +73,7 @@ Internal :: struct {
   all_arcs:        [^]Arc,
   all_strs:        cstring,
   all_strs_offset: c.size_t,
+  detailed_err:    cstring,
 }
 
 Graf :: struct {
@@ -83,14 +84,13 @@ Graf :: struct {
   nchars:                    u32,
   V:                         [^]Vertex,
   segment_flags:             Flags,
-  v_attr_types:              [2]Type,
-  a_attr_types:              [2]Type,
+  v_attr_types:              [MAX_ATTRS]Type,
+  a_attr_types:              [MAX_ATTRS]Type,
   label_v_attr_idx:          u32,
   label_a_attr_idx:          u32,
   bipartite_parts:           [2]u32,
   bipartite_part_v_attr_idx: u32,
   internal:                  Internal,
-  detailed_err:              cstring,
 }
 
 @(default_calling_convention="c")
@@ -101,5 +101,5 @@ foreign lib {
   load       :: proc(G: ^Graf, V: [^]Vertex, A: [^]Arc, s: cstring) -> Status ---
   finalize   :: proc(G: ^Graf) ---
   close      :: proc(G: ^Graf) -> Status ---
-  error_info :: proc(status: Status, detailed_err: cstring) -> cstring ---
+  error_info :: proc(G: ^Graf, status: Status) -> cstring ---
 }

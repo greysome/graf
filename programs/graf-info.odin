@@ -20,7 +20,7 @@ main :: proc() {
   defer delete(path_c)
 
   if status != .OK {
-    fmt.eprintln("graf_open() failed", graf.error_info(status, G.detailed_err))
+    fmt.eprintln("graf_open() failed", graf.error_info(&G, status))
     graf.close(&G)
     os.exit(2)
   }
@@ -32,7 +32,7 @@ main :: proc() {
   status = graf.load(&G, raw_data(V), raw_data(A), cast(cstring)raw_data(s))
 
   if status != .OK {
-    fmt.eprintln("graf_load() failed", graf.error_info(status, G.detailed_err))
+    fmt.eprintln("graf_load() failed", graf.error_info(&G, status))
     graf.close(&G)
     os.exit(2)
   }

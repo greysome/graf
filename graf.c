@@ -100,7 +100,7 @@ static GrafStatus _graf_read_uint(Graf *graf, GrafSlice *slice, uint32_t *u) {
   GRAF_ASSERT(u != NULL);
 
   if (!_graf_slice_require(slice, sizeof(uint32_t))) {
-    graf->detailed_err = GRAF_ABRUPT_EOF;
+    graf->internal.detailed_err = GRAF_ABRUPT_EOF;
     return GRAF_ERR_PARSE;
   }
 
@@ -118,14 +118,14 @@ static GrafStatus _graf_read_str(Graf *graf, GrafSlice *slice, const char **s) {
   char *end = memchr(slice->s, '\0', slice->n);
 
   if (end == NULL) {
-    graf->detailed_err = GRAF_ABRUPT_EOF;
+    graf->internal.detailed_err = GRAF_ABRUPT_EOF;
     return GRAF_ERR_PARSE;
   }
 
   size_t n = (size_t) (end - slice->s + 1);
 
   if (graf->internal.all_strs_offset + n > graf->nchars) {
-    graf->detailed_err = GRAF_BAD_NCHARS;
+    graf->internal.detailed_err = GRAF_BAD_NCHARS;
     return GRAF_ERR_PARSE;
   }
 
@@ -176,7 +176,7 @@ static GrafStatus _graf_read_vertex_record(Graf *graf, GrafSlice *slice, GrafVer
       _GRAF_READ_STR(graf, slice, &attr->s);
     }
     else {
-      graf->detailed_err = GRAF_UNIMPLEMENTED;
+      graf->internal.detailed_err = GRAF_UNIMPLEMENTED;
       return GRAF_ERR_UNIMPLEMENTED;
     }
   }
@@ -195,7 +195,7 @@ static GrafStatus _graf_read_arc_record(Graf *graf, GrafSlice *slice, GrafArc *a
   _GRAF_READ_UINT(graf, slice, &to_id);
 
   if (from_id >= graf->nv || to_id >= graf->nv) {
-    graf->detailed_err = GRAF_VERTEX_OOB;
+    graf->internal.detailed_err = GRAF_VERTEX_OOB;
     return GRAF_ERR_PARSE;
   }
 
@@ -206,12 +206,12 @@ static GrafStatus _graf_read_arc_record(Graf *graf, GrafSlice *slice, GrafArc *a
 
     if ((from_part != 0 && from_part != 1) ||
         (to_part != 0 && to_part != 1)) {
-      graf->detailed_err = GRAF_BIPARTITE_BAD_ARC;
+      graf->internal.detailed_err = GRAF_BIPARTITE_BAD_ARC;
       return GRAF_ERR_PARSE;
     }
 
     if (from_part == to_part) {
-      graf->detailed_err = GRAF_BIPARTITE_BAD_ARC;
+      graf->internal.detailed_err = GRAF_BIPARTITE_BAD_ARC;
       return GRAF_ERR_PARSE;
     }
   }
@@ -235,7 +235,7 @@ static GrafStatus _graf_read_arc_record(Graf *graf, GrafSlice *slice, GrafArc *a
       _GRAF_READ_STR(graf, slice, &attr->s);
     }
     else {
-      graf->detailed_err = GRAF_UNIMPLEMENTED;
+      graf->internal.detailed_err = GRAF_UNIMPLEMENTED;
       return GRAF_ERR_UNIMPLEMENTED;
     }
   }
@@ -251,14 +251,14 @@ GrafStatus _graf_seg_vertex_label(Graf *graf, GrafSlice *slice) {
   _GRAF_READ_UINT(graf, slice, &v_attr_idx);
 
   if (v_attr_idx >= graf->v_attr_count) {
-    graf->detailed_err = GRAF_BAD_ATTR_IDX;
+    graf->internal.detailed_err = GRAF_BAD_ATTR_IDX;
     return GRAF_ERR_PARSE;
   }
 
   graf->label_v_attr_idx = v_attr_idx;
 
   if (graf->v_attr_types[v_attr_idx] != GRAF_UNUSED) {
-    graf->detailed_err = GRAF_ATTR_ALREADY_DEFINED;
+    graf->internal.detailed_err = GRAF_ATTR_ALREADY_DEFINED;
     return GRAF_ERR_PARSE;
   }
 
@@ -275,14 +275,14 @@ GrafStatus _graf_seg_arc_label(Graf *graf, GrafSlice *slice) {
   _GRAF_READ_UINT(graf, slice, &a_attr_idx);
 
   if (a_attr_idx >= graf->a_attr_count) {
-    graf->detailed_err = GRAF_BAD_ATTR_IDX;
+    graf->internal.detailed_err = GRAF_BAD_ATTR_IDX;
     return GRAF_ERR_PARSE;
   }
 
   graf->label_a_attr_idx = a_attr_idx;
 
   if (graf->a_attr_types[a_attr_idx] != GRAF_UNUSED) {
-    graf->detailed_err = GRAF_ATTR_ALREADY_DEFINED;
+    graf->internal.detailed_err = GRAF_ATTR_ALREADY_DEFINED;
     return GRAF_ERR_PARSE;
   }
 
@@ -301,7 +301,7 @@ GrafStatus _graf_seg_bipartite(Graf *graf, GrafSlice *slice) {
   _GRAF_READ_UINT(graf, slice, &part1);
 
   if (part0 + part1 != graf->nv) {
-    graf->detailed_err = GRAF_BIPARTITE_BAD_PART_SIZES;
+    graf->internal.detailed_err = GRAF_BIPARTITE_BAD_PART_SIZES;
     return GRAF_ERR_PARSE;
   }
 
@@ -312,14 +312,14 @@ GrafStatus _graf_seg_bipartite(Graf *graf, GrafSlice *slice) {
   _GRAF_READ_UINT(graf, slice, &v_attr_idx);
 
   if (v_attr_idx >= graf->v_attr_count) {
-    graf->detailed_err = GRAF_BAD_ATTR_IDX;
+    graf->internal.detailed_err = GRAF_BAD_ATTR_IDX;
     return GRAF_ERR_PARSE;
   }
 
   graf->bipartite_part_v_attr_idx = v_attr_idx;
 
   if (graf->v_attr_types[v_attr_idx] != GRAF_UNUSED) {
-    graf->detailed_err = GRAF_ATTR_ALREADY_DEFINED;
+    graf->internal.detailed_err = GRAF_ATTR_ALREADY_DEFINED;
     return GRAF_ERR_PARSE;
   }
 
@@ -389,14 +389,14 @@ GrafStatus graf_open(const char *path, Graf *graf) {
   }
 
   if (path == NULL) {
-    graf->detailed_err = GRAF_NULLPTR;
+    graf->internal.detailed_err = GRAF_NULLPTR;
     return GRAF_ERR_USAGE;
   }
 
   int fd = open(path, O_RDONLY);
 
   if (fd == -1) {
-    graf->detailed_err = GRAF_OPEN_FAIL;
+    graf->internal.detailed_err = GRAF_OPEN_FAIL;
     return GRAF_ERR_SYS;
   }
 
@@ -410,12 +410,12 @@ GrafStatus graf_open(const char *path, Graf *graf) {
     ssize_t n_read = read(fd, ptr, n);
 
     if (n_read == -1) {
-      graf->detailed_err = GRAF_READ_FAIL;
+      graf->internal.detailed_err = GRAF_READ_FAIL;
       return GRAF_ERR_SYS;
     }
 
     if (n_read == 0) {
-      graf->detailed_err = GRAF_BAD_HEADER;
+      graf->internal.detailed_err = GRAF_BAD_HEADER;
       return GRAF_ERR_PARSE;
     }
 
@@ -453,11 +453,11 @@ GrafStatus graf_open(const char *path, Graf *graf) {
   return GRAF_OK;
 
 not_graf:
-  graf->detailed_err = GRAF_NOT_A_GRAF_FILE;
+  graf->internal.detailed_err = GRAF_NOT_A_GRAF_FILE;
   return GRAF_ERR_PARSE;
 
 bad_header:
-  graf->detailed_err = GRAF_BAD_HEADER;
+  graf->internal.detailed_err = GRAF_BAD_HEADER;
   return GRAF_ERR_PARSE;
 }
 
@@ -467,26 +467,26 @@ GrafStatus graf_load(Graf *graf, GrafVertex *V, GrafArc *A, char *s) {
   }
 
   if (V == NULL || A == NULL || s == NULL) {
-    graf->detailed_err = GRAF_NULLPTR;
+    graf->internal.detailed_err = GRAF_NULLPTR;
     return GRAF_ERR_USAGE;
   }
 
   int fd = graf->internal.fd;
 
   if (fd == -1) {
-    graf->detailed_err = GRAF_NOT_OPENED;
+    graf->internal.detailed_err = GRAF_NOT_OPENED;
     return GRAF_ERR_USAGE;
   }
 
   struct stat st;
 
   if (fstat(fd, &st) == -1) {
-    graf->detailed_err = GRAF_STAT_FAIL;
+    graf->internal.detailed_err = GRAF_STAT_FAIL;
     return GRAF_ERR_SYS;
   }
 
   if (st.st_size <= GRAF_HEADER_SIZE) {
-    graf->detailed_err = GRAF_BAD_HEADER;
+    graf->internal.detailed_err = GRAF_BAD_HEADER;
     return GRAF_ERR_PARSE;
   }
 
@@ -495,7 +495,7 @@ GrafStatus graf_load(Graf *graf, GrafVertex *V, GrafArc *A, char *s) {
   char *buf = mmap(NULL, (size_t) st.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
 
   if (buf == (char *) -1) {
-    graf->detailed_err = GRAF_MMAP_FAIL;
+    graf->internal.detailed_err = GRAF_MMAP_FAIL;
     return GRAF_ERR_SYS;
   }
 
@@ -544,7 +544,7 @@ GrafStatus graf_load(Graf *graf, GrafVertex *V, GrafArc *A, char *s) {
       }
 
       if (code != GRAF_SEGCODE_ARC_ARRAY) {
-        graf->detailed_err = GRAF_UNKNOWN_SEG;
+        graf->internal.detailed_err = GRAF_UNKNOWN_SEG;
         status = GRAF_ERR_PARSE;
         goto load_done;
       }
@@ -557,12 +557,12 @@ GrafStatus graf_load(Graf *graf, GrafVertex *V, GrafArc *A, char *s) {
     }
 
     else if (seg_code == GRAF_SEGCODE_ARC_ARRAY) {
-      graf->detailed_err = GRAF_VA_NOT_SEEN;
+      graf->internal.detailed_err = GRAF_VA_NOT_SEEN;
       status = GRAF_ERR_PARSE;
     }
 
     else {
-      graf->detailed_err = GRAF_UNKNOWN_SEG;
+      graf->internal.detailed_err = GRAF_UNKNOWN_SEG;
       status = GRAF_ERR_PARSE;
     }
 
@@ -603,24 +603,28 @@ GrafStatus graf_close(Graf *graf) {
     return GRAF_OK;
   }
   else if (close(fd) == -1) {
-    graf->detailed_err = GRAF_CLOSE_FAIL;
+    graf->internal.detailed_err = GRAF_CLOSE_FAIL;
     return GRAF_ERR_SYS;
   }
 
   return GRAF_OK;
 }
 
-char *graf_error_info(GrafStatus status, const char *detailed_err) {
+char *graf_error_info(Graf *graf, GrafStatus status) {
   static char err[128];
 
-  if (status == GRAF_OK || detailed_err == NULL) {
-    snprintf(err, 128, "(graf: )");
+  if (graf == NULL) {
+    return "(graf: NULL)";
+  }
+
+  if (status == GRAF_OK || graf->internal.detailed_err == NULL) {
+    snprintf(err, 128, "(graf: no error)");
   }
   else if (status != GRAF_ERR_SYS) {
-    snprintf(err, 128, "(graf: %s)", detailed_err);
+    snprintf(err, 128, "(graf: %s)", graf->internal.detailed_err);
   }
   else {
-    snprintf(err, 128, "(graf: %s, OS: %s)", detailed_err, strerror(errno));
+    snprintf(err, 128, "(graf: %s, OS: %s)", graf->internal.detailed_err, strerror(errno));
   }
 
   return err;
