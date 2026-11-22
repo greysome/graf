@@ -6,6 +6,7 @@
 */
 
 #define _XOPEN_SOURCE
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -36,6 +37,8 @@ typedef struct {
   int matching_size;
   int *bfs_vertex_counts;
   int *bfs_arc_counts;
+  int *dfs_vertex_counts;
+  int *dfs_arc_counts;
   int *sap_levels;
   int *sap_counts;
 } State;
@@ -45,10 +48,14 @@ void init_state(uint32_t nv, State *state) {
   state->iqueue = calloc(nv, sizeof(*state->iqueue));
   state->marked = calloc(nv, sizeof(*state->marked));
   state->stack = calloc(nv, sizeof(*state->stack));
-  state->bfs_vertex_counts = calloc(nv, sizeof(*state->bfs_vertex_counts));
-  state->bfs_arc_counts = calloc(nv, sizeof(*state->bfs_arc_counts));
-  state->sap_levels = calloc(nv, sizeof(*state->sap_levels));
-  state->sap_counts = calloc(nv, sizeof(*state->sap_counts));
+
+  size_t max_iters = (size_t) ceil(sqrt(4.0 * nv));
+  state->bfs_vertex_counts = calloc(max_iters, sizeof(*state->bfs_vertex_counts));
+  state->bfs_arc_counts = calloc(max_iters, sizeof(*state->bfs_arc_counts));
+  state->dfs_vertex_counts = calloc(max_iters, sizeof(*state->dfs_vertex_counts));
+  state->dfs_arc_counts = calloc(max_iters, sizeof(*state->dfs_arc_counts));
+  state->sap_levels = calloc(max_iters, sizeof(*state->sap_levels));
+  state->sap_counts = calloc(max_iters, sizeof(*state->sap_counts));
 
   state->n_unmatched_girls = 0;
   state->n_marked = 0;
@@ -56,15 +63,22 @@ void init_state(uint32_t nv, State *state) {
   state->n_iter = 0;
 }
 
-void cleanup_state(State *state) {
+void cleanup(Graf *graf, State *state) {
+  free(graf->V);
+  free(graf->internal.all_arcs);
+  free(graf->internal.all_strs);
+
   free(state->queue);
   free(state->iqueue);
   free(state->marked);
   free(state->stack);
   free(state->bfs_vertex_counts);
   free(state->bfs_arc_counts);
+  free(state->dfs_vertex_counts);
+  free(state->dfs_arc_counts);
   free(state->sap_levels);
   free(state->sap_counts);
+  free(state);
 }
 
 /*
@@ -122,7 +136,7 @@ GrafStatus hopcroft_karp(Graf *graf, State *state) {
   GRAF_ASSERT(state != NULL);
 
   if (!(graf->segment_flags & GRAF_BIPARTITE)) {
-    graf->detailed_err = GRAF_BAD_GRAPH;
+    graf->internal.detailed_err = GRAF_BAD_GRAPH;
     return GRAF_ERR_USAGE;
   }
 
@@ -247,6 +261,7 @@ next_sap:
 
 H12:
   state->stack[--cur_level] = b;
+  state->dfs_vertex_counts[state->n_iter]++;
   GRAF_DEBUG("- level %d: visit boy: %v\n", cur_level, b);
 
   // Find a girl preceding b by one level, that hasn't been visited
@@ -268,6 +283,8 @@ H13:
       }
     }
 
+    state->dfs_arc_counts[state->n_iter]++;
+
     ATTR_B_LINK(b) = ATTR_B_NEXT(a);
     g = a->from;
 
@@ -280,6 +297,8 @@ H13:
       break;
     }
   }
+
+  state->dfs_vertex_counts[state->n_iter]++;
 
   // The eligible girl g is matched, so we have not reached the start
   // of the SAP. Go down one level
@@ -321,7 +340,7 @@ H13:
 void input_file(char *path, Graf *graf) {
   GrafStatus status = graf_open(path, graf);
   if (status != GRAF_OK) {
-    fprintf(stderr, "[ERROR] graf_open() failed %s\n", graf_error_info(status, graf->detailed_err));
+    fprintf(stderr, "graf_open() failed %s\n", graf_error_info(graf, status));
     exit(1);
   }
 
@@ -331,7 +350,7 @@ void input_file(char *path, Graf *graf) {
 
   status = graf_load(graf, V, A, s);
   if (status != GRAF_OK) {
-    fprintf(stderr, "[ERROR] graf_load() failed %s\n", graf_error_info(status, graf->detailed_err));
+    fprintf(stderr, "graf_load() failed %s\n", graf_error_info(graf, status));
     exit(1);
   }
 }
@@ -340,7 +359,7 @@ void random_bipartite(Graf *graf, long m, long n, double p) {
   graf->nv = (uint32_t) (m + n);
   graf->a_attr_count = 0;
   graf->nchars = 0;
-  graf->detailed_err = NULL;
+  graf->internal.detailed_err = NULL;
   graf->internal.fd = -1;
 
   graf->segment_flags = GRAF_BIPARTITE;
@@ -402,12 +421,12 @@ void input_rand(char *spec, Graf *graf) {
   }
 
   long m = strtol(ptr, &ptr, 10);
-  if (m <= 0 || *ptr == '\0' || *(ptr++) != ',') {
+  if (m <= 0 || m > UINT32_MAX || *ptr == '\0' || *(ptr++) != ',') {
     goto bad;
   }
 
   long n = strtol(ptr, &ptr, 10);
-  if (n <= 0 || *ptr == '\0' || *(ptr++) != ',') {
+  if (n <= 0 || n > UINT32_MAX || *ptr == '\0' || *(ptr++) != ',') {
     goto bad;
   }
 
@@ -416,26 +435,43 @@ void input_rand(char *spec, Graf *graf) {
     goto bad;
   }
 
+  if (m > UINT32_MAX - n) {
+    fprintf(stderr, "too many vertices: '%s'\n", spec);
+    exit(1);
+  }
+
+  uint64_t na = 2 * (uint64_t) m * (uint64_t) n;
+  if (na > UINT32_MAX) {
+    fprintf(stderr, "too many arcs: '%s'\n", spec);
+    exit(1);
+  }
+
   random_bipartite(graf, m, n, p);
   return;
 
 bad:
-  fprintf(stderr, "[ERROR] Invalid random spec '%s'\n", spec);
+  fprintf(stderr, "invalid random spec '%s'\n", spec);
   exit(1);
 }
 
 void print_tabular_format(State *state) {
-  printf("iter,bfs-vertices,bfs-arcs,sap-level,sap-count\n");
+  printf("iter,bfs-vertices,bfs-arcs,dfs-vertices,dfs-arcs,sap-level,sap-count\n");
   for (int i = 0; i < state->n_iter; i++) {
-    printf("%d,%d,%d,%d,%d\n", i, state->bfs_vertex_counts[i], state->bfs_arc_counts[i], state->sap_levels[i], state->sap_counts[i]);
+    printf("%d,%d,%d,%d,%d,%d,%d\n", i,
+           state->bfs_vertex_counts[i], state->bfs_arc_counts[i],
+           state->dfs_vertex_counts[i], state->dfs_arc_counts[i],
+           state->sap_levels[i], state->sap_counts[i]);
   }
 }
 
 void print_human_format(Graf *graf, State *state) {
-  printf(" %-4s  |  %-12s  %-8s  %-9s  %-9s\n", "Iter", "BFS vertices", "BFS arcs", "SAP level", "# SAPs");
-  printf("----------------------------------------------------\n");
+  printf(" %-4s  |  %-12s  %-8s  %-12s  %-8s  %-9s  %-9s\n", "Iter", "BFS vertices", "BFS arcs", "DFS vertices", "DFS arcs", "SAP level", "# SAPs");
+  printf("----------------------------------------------------------------------------\n");
   for (int i = 0; i < state->n_iter; i++) {
-    printf(" %4d  |  %-12d  %-8d  %-9d  %-9d\n", i, state->bfs_vertex_counts[i], state->bfs_arc_counts[i], state->sap_levels[i], state->sap_counts[i]);
+    printf(" %4d  |  %-12d  %-8d  %-12d  %-8d  %-9d  %-9d\n", i,
+           state->bfs_vertex_counts[i], state->bfs_arc_counts[i],
+           state->dfs_vertex_counts[i], state->dfs_arc_counts[i],
+           state->sap_levels[i], state->sap_counts[i]);
   }
 
   printf("\nMaximum matching:\n");
@@ -449,7 +485,7 @@ void print_human_format(Graf *graf, State *state) {
     printf("%v - %v\n", v, w);
   }
 
-  printf("Size: %d\n", state->matching_size);
+  printf("\nSize: %d\n", state->matching_size);
 }
 
 int main(int argc, char **argv) {
@@ -503,7 +539,7 @@ int main(int argc, char **argv) {
   }
 
   graf_close(graf);
+  cleanup(graf, state);
   free(graf);
-  cleanup_state(state);
   return 0;
 }

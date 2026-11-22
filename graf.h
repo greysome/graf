@@ -49,26 +49,6 @@ typedef enum {
   GRAF_ERR_UNIMPLEMENTED,
 } GrafStatus;
 
-/* Detailed error messages to complement GrafStatus. */
-extern const char *GRAF_OPEN_FAIL;
-extern const char *GRAF_READ_FAIL;
-extern const char *GRAF_STAT_FAIL;
-extern const char *GRAF_MMAP_FAIL;
-extern const char *GRAF_CLOSE_FAIL;
-extern const char *GRAF_BAD_HEADER;
-extern const char *GRAF_BAD_ATTR_IDX;
-extern const char *GRAF_ABRUPT_EOF;
-extern const char *GRAF_UNKNOWN_SEG;
-extern const char *GRAF_VERTEX_OOB;
-extern const char *GRAF_BAD_CHAR_COUNT;
-extern const char *GRAF_VA_NOT_SEEN;
-extern const char *GRAF_NULLPTR;
-extern const char *GRAF_UNIMPLEMENTED;
-extern const char *GRAF_ATTR_ALREADY_DEFINED;
-extern const char *GRAF_BIPARTITE_BAD_PART_SIZES;
-extern const char *GRAF_BIPARTITE_BAD_ARC;
-extern const char *GRAF_NOT_OPENED;
-
 typedef enum {
   GRAF_UNUSED,
   GRAF_UINT,
@@ -118,6 +98,7 @@ typedef struct {
   GrafArc *all_arcs;
   char *all_strs;
   size_t all_strs_offset;
+  const char *detailed_err;
 } GrafInternal;
 
 typedef struct {
@@ -141,7 +122,6 @@ typedef struct {
   uint32_t bipartite_part_v_attr_idx;
 
   GrafInternal internal;
-  const char *detailed_err;
 } Graf;
 
 extern Graf *_graf_global;
@@ -150,7 +130,7 @@ extern Graf *_graf_global;
   Initialise graf to some sane values.
 
   Errors:
-  GRAF_ERR_USAGE if a null pointer was psased
+  GRAF_ERR_USAGE if a null pointer was passed
 */
 GrafStatus graf_init(Graf *graf);
 
@@ -175,7 +155,7 @@ GrafStatus graf_open(const char *path, Graf *graf);
   respectively. They must be non-NULL even if the size is 0.
 
   Errors:
-  GRAF_ERR_USAGE if a null pointer was psased
+  GRAF_ERR_USAGE if a null pointer was passed
   GRAF_ERR_SYS if cannot mmap() or close() file
   GRAF_ERR_PARSE if GRAF body is malformed
 */
@@ -188,10 +168,9 @@ GrafStatus graf_load(Graf *graf, GrafVertex *V, GrafArc *A, char *s);
 void graf_finalize(Graf *graf);
 
 /*
-  Perform cleanup: free the buffers supplied in graf_load(), close the
-  file opened by graf_open() (if there was one), and unset
-  _graf_global. It is safe to call multiple times, although usually
-  there is rarely a need to handle close() failure.
+  Perform cleanup: close the file opened by graf_open() (if there was
+  one), and unset _graf_global. The buffers provided in graf_load()
+  must be manually freed by the user.
 
   Errors:
   GRAF_ERR_USAGE if a null pointer was passed
@@ -202,14 +181,18 @@ GrafStatus graf_close(Graf *graf);
 /*
   Return a string containing a message in one of two forms:
 
-  '(graf: `detailed_err`, OS: ...)' or
-  '(graf: `detailed_err`)',
+  '(graf: [DETAILED ERROR], OS: ...)' or
+  '(graf: [DETAILED ERROR])',
 
-  depending on whether status == GRAF_ERR_SYS. If status == GRAF_OK or
-  detailed_err == NULL, then then the string simply be
+  depending on whether status == GRAF_ERR_SYS. [DETAILED ERROR] is the
+  detailed error message stored in the Graf struct.
 
-  '(graf: )'.
+  Hardcoded strings are returned under each of the following
+  conditions:
+  - status == GRAF_OK
+  - graf == NULL
+  - [DETAILED ERROR] is a NULL string
 */
-char *graf_error_info(GrafStatus status, const char *detailed_err);
+char *graf_error_info(Graf *graf, GrafStatus status);
 
 #endif

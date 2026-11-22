@@ -1,0 +1,308 @@
+Initial matching:
+g16 - b15
+g14 - b13
+g12 - b11
+g10 - b9
+g8 - b7
+g6 - b5
+g4 - b3
+g2 - b1
+Size: 8
+
+---------- BFS ----------
+Level 0
+- visit girl: g1
+  - visit boy: b1 (mate g2)
+- visit girl: g3
+  - visit boy: b3 (mate g4)
+- visit girl: g7
+  - visit boy: b7 (mate g8)
+- visit girl: g13
+  - visit boy: b13 (mate g14)
+- visit girl: g9
+  - visit boy: b9 (mate g10)
+- visit girl: g15
+  - visit boy: b15 (mate g16)
+- visit girl: g11
+  - visit boy: b11 (mate g12)
+- visit girl: g5
+  - visit boy: b5 (mate g6)
+Level 1
+- visit girl: g2
+  - visit boy: b2 (unmatched)
+- visit girl: g4
+  - visit boy: b4 (unmatched)
+- visit girl: g8
+  - visit boy: b8 (unmatched)
+- visit girl: g14
+  - visit boy: b14 (unmatched)
+- visit girl: g10
+  - visit boy: b6 (unmatched)
+  - visit boy: b10 (unmatched)
+- visit girl: g16
+  - visit boy: b16 (unmatched)
+- visit girl: g12
+  - visit boy: b12 (unmatched)
+- visit girl: g6
+
+---------- DFS ----------
+- level 1: visit boy: b2
+  - found girl: g4
+- level 0: visit boy: b3
+  - found girl: g5
+  - augmenting
+- level 1: visit boy: b4
+  - found girl: g6
+- level 0: visit boy: b5
+  - moving up one level
+  - moving up one level
+- level 1: visit boy: b8
+  - found girl: g10
+- level 0: visit boy: b9
+  - found girl: g11
+  - augmenting
+- level 1: visit boy: b14
+  - found girl: g16
+- level 0: visit boy: b15
+  - found girl: g15
+  - augmenting
+- level 1: visit boy: b6
+  - found girl: g6
+- level 0: visit boy: b5
+  - moving up one level
+  - moving up one level
+- level 1: visit boy: b10
+  - found girl: g12
+- level 0: visit boy: b11
+  - moving up one level
+  - moving up one level
+- level 1: visit boy: b16
+  - moving up one level
+- level 1: visit boy: b12
+  - found girl: g12
+- level 0: visit boy: b11
+  - moving up one level
+  - moving up one level
+
+---------- BFS ----------
+Level 0
+- visit girl: g1
+  - visit boy: b1 (mate g2)
+- visit girl: g3
+  - visit boy: b3 (mate g5)
+- visit girl: g7
+  - visit boy: b7 (mate g8)
+- visit girl: g13
+  - visit boy: b13 (mate g14)
+- visit girl: g9
+  - visit boy: b9 (mate g11)
+Level 1
+- visit girl: g2
+  - visit boy: b2 (mate g4)
+- visit girl: g5
+  - visit boy: b5 (mate g6)
+- visit girl: g8
+  - visit boy: b8 (mate g10)
+- visit girl: g14
+  - visit boy: b14 (mate g16)
+- visit girl: g11
+  - visit boy: b11 (mate g12)
+Level 2
+- visit girl: g4
+  - visit boy: b4 (unmatched)
+- visit girl: g6
+  - visit boy: b6 (unmatched)
+- visit girl: g10
+  - visit boy: b10 (unmatched)
+- visit girl: g16
+  - visit boy: b15 (matched; ignoring)
+  - visit boy: b16 (unmatched)
+- visit girl: g12
+  - visit boy: b12 (unmatched)
+
+---------- DFS ----------
+- level 2: visit boy: b4
+  - found girl: g6
+- level 1: visit boy: b5
+  - found girl: g8
+- level 0: visit boy: b7
+  - found girl: g9
+  - augmenting
+- level 2: visit boy: b6
+  - found girl: g10
+- level 1: visit boy: b8
+  - moving up one level
+  - moving up one level
+- level 2: visit boy: b10
+  - found girl: g12
+- level 1: visit boy: b11
+  - found girl: g11
+- level 0: visit boy: b9
+  - moving up one level
+  - moving up one level
+  - found girl: g10
+- level 1: visit boy: b8
+  - moving up one level
+  - moving up one level
+- level 2: visit boy: b16
+  - found girl: g16
+- level 1: visit boy: b14
+  - found girl: g14
+- level 0: visit boy: b13
+  - found girl: g13
+  - augmenting
+- level 2: visit boy: b12
+  - found girl: g12
+- level 1: visit boy: b11
+  - moving up one level
+  - moving up one level
+
+---------- BFS ----------
+Level 0
+- visit girl: g1
+  - visit boy: b1 (mate g2)
+- visit girl: g3
+  - visit boy: b3 (mate g5)
+- visit girl: g7
+  - visit boy: b7 (mate g9)
+Level 1
+- visit girl: g2
+  - visit boy: b2 (mate g4)
+- visit girl: g5
+  - visit boy: b5 (mate g8)
+- visit girl: g9
+  - visit boy: b9 (mate g11)
+Level 2
+- visit girl: g4
+  - visit boy: b4 (mate g6)
+- visit girl: g8
+  - visit boy: b8 (mate g10)
+- visit girl: g11
+  - visit boy: b11 (mate g12)
+Level 3
+- visit girl: g6
+  - visit boy: b6 (unmatched)
+- visit girl: g10
+  - visit boy: b10 (unmatched)
+- visit girl: g12
+  - visit boy: b12 (unmatched)
+
+---------- DFS ----------
+- level 3: visit boy: b6
+  - found girl: g10
+- level 2: visit boy: b8
+  - found girl: g8
+- level 1: visit boy: b5
+  - found girl: g5
+- level 0: visit boy: b3
+  - found girl: g7
+  - augmenting
+- level 3: visit boy: b10
+  - found girl: g12
+- level 2: visit boy: b11
+  - found girl: g11
+- level 1: visit boy: b9
+  - found girl: g9
+- level 0: visit boy: b7
+  - moving up one level
+  - moving up one level
+  - moving up one level
+  - moving up one level
+- level 3: visit boy: b12
+  - found girl: g12
+- level 2: visit boy: b11
+  - moving up one level
+  - moving up one level
+
+---------- BFS ----------
+Level 0
+- visit girl: g1
+  - visit boy: b1 (mate g2)
+- visit girl: g3
+  - visit boy: b3 (mate g7)
+Level 1
+- visit girl: g2
+  - visit boy: b2 (mate g4)
+- visit girl: g7
+  - visit boy: b7 (mate g9)
+Level 2
+- visit girl: g4
+  - visit boy: b4 (mate g6)
+- visit girl: g9
+  - visit boy: b9 (mate g11)
+Level 3
+- visit girl: g6
+  - visit boy: b5 (mate g5)
+  - visit boy: b6 (mate g10)
+- visit girl: g11
+  - visit boy: b11 (mate g12)
+Level 4
+- visit girl: g5
+- visit girl: g10
+  - visit boy: b8 (mate g8)
+  - visit boy: b10 (unmatched)
+- visit girl: g12
+  - visit boy: b12 (unmatched)
+
+---------- DFS ----------
+- level 4: visit boy: b10
+  - found girl: g12
+- level 3: visit boy: b11
+  - found girl: g11
+- level 2: visit boy: b9
+  - found girl: g9
+- level 1: visit boy: b7
+  - found girl: g7
+- level 0: visit boy: b3
+  - found girl: g3
+  - augmenting
+- level 4: visit boy: b12
+  - moving up one level
+
+---------- BFS ----------
+Level 0
+- visit girl: g1
+  - visit boy: b1 (mate g2)
+Level 1
+- visit girl: g2
+  - visit boy: b2 (mate g4)
+Level 2
+- visit girl: g4
+  - visit boy: b3 (mate g3)
+  - visit boy: b4 (mate g6)
+Level 3
+- visit girl: g3
+- visit girl: g6
+  - visit boy: b5 (mate g5)
+  - visit boy: b6 (mate g10)
+Level 4
+- visit girl: g5
+- visit girl: g10
+  - visit boy: b9 (mate g9)
+  - visit boy: b8 (mate g8)
+  - visit boy: b10 (mate g12)
+Level 5
+- visit girl: g9
+  - visit boy: b7 (mate g7)
+- visit girl: g8
+- visit girl: g12
+  - visit boy: b11 (mate g11)
+  - visit boy: b12 (unmatched)
+
+---------- DFS ----------
+- level 5: visit boy: b12
+  - found girl: g12
+- level 4: visit boy: b10
+  - found girl: g10
+- level 3: visit boy: b6
+  - found girl: g6
+- level 2: visit boy: b4
+  - found girl: g4
+- level 1: visit boy: b2
+  - found girl: g2
+- level 0: visit boy: b1
+  - found girl: g1
+  - augmenting
+
+---------- BFS ----------
+Level 0
