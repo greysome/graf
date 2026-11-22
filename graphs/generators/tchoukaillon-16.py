@@ -35,8 +35,7 @@ for edge in edges.split(' '):
   endpoints = edge.split('-')
   a = endpoints[0]
   b = endpoints[1]
-  add_arc(f'g{a}', f'b{b}')
-  add_arc(f'b{b}', f'g{a}')
+  add_edge(f'g{a}', f'b{b}')
 
 fixup_header()
 write_to('tchoukaillon-16.graf')

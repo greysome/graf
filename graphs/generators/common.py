@@ -111,6 +111,10 @@ def add_arc(src, dest, *attrs):
 
   _na += 1
 
+def add_edge(src, dest):
+  add_arc(src, dest)
+  add_arc(dest, src)
+
 def fixup_header():
   global _buf
   _buf[8:12] = _nv.to_bytes(4, 'big')

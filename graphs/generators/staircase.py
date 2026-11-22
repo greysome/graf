@@ -1,5 +1,7 @@
 # A pathological example of a bipartite graph that forces
 # Hopcroft-Karp to achieve its asymptotic worst-case complexity.
+#
+# Disclaimer: this is AI slop.
 
 import math
 import sys
