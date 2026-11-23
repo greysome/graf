@@ -465,16 +465,7 @@ void print_tabular_format(State *state) {
 }
 
 void print_human_format(Graf *graf, State *state) {
-  printf(" %-4s  |  %-12s  %-8s  %-12s  %-8s  %-9s  %-9s\n", "Iter", "BFS vertices", "BFS arcs", "DFS vertices", "DFS arcs", "SAP level", "# SAPs");
-  printf("----------------------------------------------------------------------------\n");
-  for (int i = 0; i < state->n_iter; i++) {
-    printf(" %4d  |  %-12d  %-8d  %-12d  %-8d  %-9d  %-9d\n", i,
-           state->bfs_vertex_counts[i], state->bfs_arc_counts[i],
-           state->dfs_vertex_counts[i], state->dfs_arc_counts[i],
-           state->sap_levels[i], state->sap_counts[i]);
-  }
-
-  printf("\nMaximum matching:\n");
+  printf("Maximum matching (size %d):\n", state->matching_size);
   for (GrafVertex *v = graf->V; v < graf->V + graf->nv; v++) {
     GrafVertex *w = ATTR_MATE(v);
 
@@ -485,16 +476,27 @@ void print_human_format(Graf *graf, State *state) {
     printf("%v - %v\n", v, w);
   }
 
-  printf("\nSize: %d\n", state->matching_size);
+  printf("\n %-4s  |  %-12s  %-8s  %-12s  %-8s  %-9s  %-9s\n", "Iter", "BFS vertices", "BFS arcs", "DFS vertices", "DFS arcs", "SAP level", "# SAPs");
+  printf("----------------------------------------------------------------------------\n");
+  for (int i = 0; i < state->n_iter; i++) {
+    printf(" %4d  |  %-12d  %-8d  %-12d  %-8d  %-9d  %-9d\n", i,
+           state->bfs_vertex_counts[i], state->bfs_arc_counts[i],
+           state->dfs_vertex_counts[i], state->dfs_arc_counts[i],
+           state->sap_levels[i], state->sap_counts[i]);
+  }
 }
 
 int main(int argc, char **argv) {
   bool flag_tabular_format = false;
+  bool debug = false;
 
   while (1) {
-    int c = getopt(argc, argv, "t");
+    int c = getopt(argc, argv, "gt");
     if (c == 't') {
       flag_tabular_format = true;
+    }
+    else if (c == 'g') {
+      debug = true;
     }
     else if (c == -1) {
       break;
@@ -510,6 +512,7 @@ int main(int argc, char **argv) {
 "and N, where the proportion of edges given by P (a floating point number\n"
 "between 0 and 1).\n"
 "\n"
+"  -g\tenable debug output\n"
 "  -t\toutput algorithm metrics in tabular format, for friendly parsing\n"
 "    \t(does not output the final matching)\n"
     );
@@ -520,6 +523,7 @@ int main(int argc, char **argv) {
   Graf *graf = calloc(1, sizeof(*graf));
   GrafStatus status = graf_init(graf);
   GRAF_ASSERT(status == GRAF_OK);
+  graf_set_debug(debug);
 
   if (strncmp(path, "rand:", 5) == 0) {
     input_rand(path, graf);

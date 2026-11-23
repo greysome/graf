@@ -26,7 +26,13 @@
      } while (0)
 #endif
 
-#define GRAF_DEBUG(...) fprintf(stderr __VA_OPT__(,) __VA_ARGS__)
+extern bool _graf_debug;
+
+#define GRAF_DEBUG(...)                                     \
+  do {                                                      \
+    if (_graf_debug)                                        \
+      fprintf(stderr __VA_OPT__(,) __VA_ARGS__);            \
+  } while (0)
 
 #define GRAF_VERSION 0
 #define GRAF_HEADER_SIZE 28
@@ -194,5 +200,10 @@ GrafStatus graf_close(Graf *graf);
   - [DETAILED ERROR] is a NULL string
 */
 char *graf_error_info(Graf *graf, GrafStatus status);
+
+/*
+  Enable or disable GRAF_DEBUG output (it goes to stderr).
+*/
+void graf_set_debug(bool debug);
 
 #endif

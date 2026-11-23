@@ -29,6 +29,8 @@
 Graf *_graf_global = NULL;
 bool _graf_registered_printf = false;
 
+bool _graf_debug = false;
+
 static int _printf_vertex_arginfo(const struct printf_info *info, size_t n, int *argtypes) {
   if (n > 0) {
     argtypes[0] = PA_POINTER;
@@ -628,4 +630,8 @@ char *graf_error_info(Graf *graf, GrafStatus status) {
   }
 
   return err;
+}
+
+void graf_set_debug(bool debug) {
+  _graf_debug = debug;
 }

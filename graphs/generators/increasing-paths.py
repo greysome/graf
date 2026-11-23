@@ -17,26 +17,28 @@ SPEC is exactly one of the following strings:
 If -e or -v is used, extra edges/vertices are treated as padding.''')
   sys.exit(2)
 
+def parse_int_opt(s):
+  try:
+    i = int(s)
+  except ValueErrror:
+    usage()
+  else:
+    if i < 0:
+      usage()
+  return i
 
 optlist, args = getopt.gnu_getopt(sys.argv[1:], 'e:v:p:', longopts=[])
 if len(optlist) != 1:
   usage()
 
 e, v, p = None, None, None
-try:
-  for opt, arg in optlist:
-    if opt == '-e':
-      e = int(arg)
-    elif opt == '-v':
-      v = int(arg)
-    elif opt == '-p':
-      p = int(arg)
-except ValueError:
-  usage()
-
-# Exactly one valid mode must be selected
-if len(optlist) != 1 or args or any(x is not None and x < 0 for x in (e, v, p)):
-  usage()
+for opt, arg in optlist:
+  if opt == '-e':
+    e = parse_int_opt(arg)
+  elif opt == '-v':
+    v = parse_int_opt(arg)
+  elif opt == '-p':
+    p = parse_int_opt(arg)
 
 init_header(v_attr_count=2)
 vertex_labels(0)

@@ -1,12 +1,4 @@
- Iter  |  BFS vertices  BFS arcs  DFS vertices  DFS arcs  SAP level  # SAPs   
-----------------------------------------------------------------------------
-    0  |  32            35        25            16        2          3        
-    1  |  31            34        25            14        3          2        
-    2  |  24            28        18            10        4          1        
-    3  |  23            25        11            6         5          1        
-    4  |  22            24        12            6         6          1        
-
-Maximum matching:
+Maximum matching (size 16):
 g16 - b16
 g14 - b14
 g12 - b12
@@ -24,4 +16,10 @@ g15 - b15
 g11 - b11
 g5 - b5
 
-Size: 16
+ Iter  |  BFS vertices  BFS arcs  DFS vertices  DFS arcs  SAP level  # SAPs   
+----------------------------------------------------------------------------
+    0  |  32            35        25            16        2          3        
+    1  |  31            34        25            14        3          2        
+    2  |  24            28        18            10        4          1        
+    3  |  23            25        11            6         5          1        
+    4  |  22            24        12            6         6          1        
