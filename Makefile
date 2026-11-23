@@ -10,6 +10,7 @@ BASE_ODIN_FLAGS := -collection:graf=./odin -file
 DEBUG_ODIN_FLAGS := $(BASE_ODIN_FLAGS) -extra-assembler-flags:"-fsanitize=address,undefined" -debug
 DEBUG_ODIN_LINK_FLAGS = -fsanitize=address,undefined
 
+vendor_objs := $(patsubst vendor/%.c,$(BUILD_DIR)/vendor/%.o,$(wildcard vendor/*/*.c))
 c_programs := $(patsubst programs/%.c,$(BUILD_DIR)/bin/%,$(wildcard programs/*.c))
 odin_programs := $(patsubst programs/%.odin,$(BUILD_DIR)/bin/%,$(wildcard programs/*.odin))
 
@@ -29,6 +30,25 @@ coverage:
 afl:
 	$(MAKE) CC=afl-cc BUILD_DIR=build/afl CFLAGS='$(RELEASE_CFLAGS)' ODIN_FLAGS='$(BASE_ODIN_FLAGS)' build
 
+build: $(BUILD_DIR)/libgraf.a $(vendor_objs) $(c_programs) $(odin_programs)
+
+$(BUILD_DIR)/vendor/%.o: vendor/%.c vendor/%.h
+	mkdir -p $(@D)
+	$(CC) $(CFLAGS) -Wno-conversion -c $< -o $@
+
+$(BUILD_DIR)/libgraf.a: graf.c graf.h
+	mkdir -p $(BUILD_DIR)
+	$(CC) $(CFLAGS) -c graf.c -o $(BUILD_DIR)/graf.o
+	ar rcs $@ $(BUILD_DIR)/graf.o
+
+$(BUILD_DIR)/bin/%: programs/%.c $(BUILD_DIR)/libgraf.a $(vendor_objs)
+	mkdir -p $(BUILD_DIR)/bin
+	$(CC) $(CFLAGS) -I. $^ -o $@ -lm
+
+$(BUILD_DIR)/bin/%: programs/%.odin $(BUILD_DIR)/libgraf.a
+	mkdir -p $(BUILD_DIR)/bin
+	odin build $< $(ODIN_FLAGS) -extra-linker-flags:"$(ODIN_LINK_FLAGS) -L$(BUILD_DIR)" -out:$@
+
 test: debug
 	./test/test.sh
 
@@ -38,23 +58,8 @@ fuzz: afl
 dist: release
 	./dist.sh
 
-build: $(BUILD_DIR)/libgraf.a $(c_programs) $(odin_programs)
-
 clean:
 	rm -rf build
 
 distclean:
 	rm -rf dist graf-*.tar.gz
-
-$(BUILD_DIR)/libgraf.a: graf.c graf.h
-	mkdir -p $(BUILD_DIR)
-	$(CC) $(CFLAGS) -c graf.c -o $(BUILD_DIR)/graf.o
-	ar rcs $@ $(BUILD_DIR)/graf.o
-
-$(BUILD_DIR)/bin/%: programs/%.c $(BUILD_DIR)/libgraf.a
-	mkdir -p $(BUILD_DIR)/bin
-	$(CC) $(CFLAGS) -I. $^ -o $@ -lm
-
-$(BUILD_DIR)/bin/%: programs/%.odin $(BUILD_DIR)/libgraf.a
-	mkdir -p $(BUILD_DIR)/bin
-	odin build $< $(ODIN_FLAGS) -extra-linker-flags:"$(ODIN_LINK_FLAGS) -L$(BUILD_DIR)" -out:$@

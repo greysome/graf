@@ -5,14 +5,18 @@
   in the first and second part.
 */
 
+// For getopt()
 #define _XOPEN_SOURCE
+#include <errno.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <sys/random.h>
 #include <unistd.h>
 #include "graf.h"
+#include "vendor/pcg_basic/pcg_basic.h"
 
 #define ATTR_PART(vv) (vv)->attrs[graf->bipartite_part_v_attr_idx].u
 #define ATTR_LABEL(vv) (vv)->attrs[graf->label_v_attr_idx].s
@@ -43,43 +47,8 @@ typedef struct {
   int *sap_counts;
 } State;
 
-void init_state(uint32_t nv, State *state) {
-  state->queue = calloc(nv, sizeof(*state->queue));
-  state->iqueue = calloc(nv, sizeof(*state->iqueue));
-  state->marked = calloc(nv, sizeof(*state->marked));
-  state->stack = calloc(nv, sizeof(*state->stack));
-
-  size_t max_iters = (size_t) ceil(sqrt(4.0 * nv));
-  state->bfs_vertex_counts = calloc(max_iters, sizeof(*state->bfs_vertex_counts));
-  state->bfs_arc_counts = calloc(max_iters, sizeof(*state->bfs_arc_counts));
-  state->dfs_vertex_counts = calloc(max_iters, sizeof(*state->dfs_vertex_counts));
-  state->dfs_arc_counts = calloc(max_iters, sizeof(*state->dfs_arc_counts));
-  state->sap_levels = calloc(max_iters, sizeof(*state->sap_levels));
-  state->sap_counts = calloc(max_iters, sizeof(*state->sap_counts));
-
-  state->n_unmatched_girls = 0;
-  state->n_marked = 0;
-  state->matching_size = 0;
-  state->n_iter = 0;
-}
-
-void cleanup(Graf *graf, State *state) {
-  free(graf->V);
-  free(graf->internal.all_arcs);
-  free(graf->internal.all_strs);
-
-  free(state->queue);
-  free(state->iqueue);
-  free(state->marked);
-  free(state->stack);
-  free(state->bfs_vertex_counts);
-  free(state->bfs_arc_counts);
-  free(state->dfs_vertex_counts);
-  free(state->dfs_arc_counts);
-  free(state->sap_levels);
-  free(state->sap_counts);
-  free(state);
-}
+/* Forward declarations */
+void init_state(uint32_t, State *);
 
 /*
   Greedily construct a maximal matching by matching each girl in turn
@@ -337,6 +306,58 @@ H13:
   goto next_sap;
 }
 
+void init_rand(bool flag_seed, uint64_t seed) {
+  if (flag_seed) {
+    pcg32_srandom(seed, 386u);
+  }
+  else {
+    ssize_t n = getrandom(&seed, sizeof(seed), 0);
+    if (n == -1 || (unsigned int) n < sizeof(seed)) {
+      fprintf(stderr, "getrandom() failed (OS: %s)\n", strerror(errno));
+      exit(1);
+    }
+    pcg32_srandom(seed, 386u);
+  }
+}
+
+void init_state(uint32_t nv, State *state) {
+  state->queue = calloc(nv, sizeof(*state->queue));
+  state->iqueue = calloc(nv, sizeof(*state->iqueue));
+  state->marked = calloc(nv, sizeof(*state->marked));
+  state->stack = calloc(nv, sizeof(*state->stack));
+
+  size_t max_iters = (size_t) ceil(sqrt(4.0 * nv));
+  state->bfs_vertex_counts = calloc(max_iters, sizeof(*state->bfs_vertex_counts));
+  state->bfs_arc_counts = calloc(max_iters, sizeof(*state->bfs_arc_counts));
+  state->dfs_vertex_counts = calloc(max_iters, sizeof(*state->dfs_vertex_counts));
+  state->dfs_arc_counts = calloc(max_iters, sizeof(*state->dfs_arc_counts));
+  state->sap_levels = calloc(max_iters, sizeof(*state->sap_levels));
+  state->sap_counts = calloc(max_iters, sizeof(*state->sap_counts));
+
+  state->n_unmatched_girls = 0;
+  state->n_marked = 0;
+  state->matching_size = 0;
+  state->n_iter = 0;
+}
+
+void cleanup(Graf *graf, State *state) {
+  free(graf->V);
+  free(graf->internal.all_arcs);
+  free(graf->internal.all_strs);
+
+  free(state->queue);
+  free(state->iqueue);
+  free(state->marked);
+  free(state->stack);
+  free(state->bfs_vertex_counts);
+  free(state->bfs_arc_counts);
+  free(state->dfs_vertex_counts);
+  free(state->dfs_arc_counts);
+  free(state->sap_levels);
+  free(state->sap_counts);
+  free(state);
+}
+
 void input_file(char *path, Graf *graf) {
   GrafStatus status = graf_open(path, graf);
   if (status != GRAF_OK) {
@@ -382,13 +403,11 @@ void random_bipartite(Graf *graf, long m, long n, double p) {
   }
 
   // Initialise arcs randomly
-  srand((unsigned int) time(NULL));
   GrafArc *a = A;
 
   for (GrafVertex *v = V; v < V + m; v++) {
     for (GrafVertex *w = V + m; w < V + m + n; w++) {
-      // TODO: use a better RNG
-      double x = (double) rand() / RAND_MAX;
+      double x = (double) pcg32_random() / UINT32_MAX;
       if (x < p) {
         a->from = v;
         a->to = w;
@@ -488,15 +507,21 @@ void print_human_format(Graf *graf, State *state) {
 
 int main(int argc, char **argv) {
   bool flag_tabular_format = false;
-  bool debug = false;
+  bool flag_debug = false;
+  bool flag_seed = false;
+  uint64_t seed = 0;
 
   while (1) {
-    int c = getopt(argc, argv, "gt");
+    int c = getopt(argc, argv, "gts:");
     if (c == 't') {
       flag_tabular_format = true;
     }
     else if (c == 'g') {
-      debug = true;
+      flag_debug = true;
+    }
+    else if (c == 's') {
+      flag_seed = true;
+      seed = (uint64_t) strtoll(optarg, NULL, 10);
     }
     else if (c == -1) {
       break;
@@ -504,7 +529,7 @@ int main(int argc, char **argv) {
   }
 
   if (optind >= argc) {
-    printf(
+    fprintf(stderr,
 "Usage: hopcroft-karp [OPTION]... [SPEC]\n"
 "\n"
 "SPEC is either a path, or a string of the form 'rand:<M>,<N>,<P>', which\n"
@@ -512,9 +537,11 @@ int main(int argc, char **argv) {
 "and N, where the proportion of edges given by P (a floating point number\n"
 "between 0 and 1).\n"
 "\n"
+"  -s SEED\tset random seed (for random graphs)\n"
 "  -g\tenable debug output\n"
 "  -t\toutput algorithm metrics in tabular format, for friendly parsing\n"
 "    \t(does not output the final matching)\n"
+"  -h\tprint this help message\n"
     );
     return 1;
   }
@@ -523,9 +550,10 @@ int main(int argc, char **argv) {
   Graf *graf = calloc(1, sizeof(*graf));
   GrafStatus status = graf_init(graf);
   GRAF_ASSERT(status == GRAF_OK);
-  graf_set_debug(debug);
+  graf_set_debug(flag_debug);
 
   if (strncmp(path, "rand:", 5) == 0) {
+    init_rand(flag_seed, seed);
     input_rand(path, graf);
   }
   else {
