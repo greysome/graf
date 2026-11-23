@@ -102,8 +102,8 @@ test_string graf-info graphs/bipartite-invalid-part-value.graf  '' 'graf_load() 
 test_string graf-info graphs/bipartite-label-conflict.graf      '' 'graf_load() failed (graf: attribute already defined)'
 test_string graf-info graphs/bipartite-bad-part-sizes.graf      '' 'graf_load() failed (graf: bad part sizes in bipartite segment)'
 test_string graf-info graphs/bipartite-bad-attr-index.graf      '' 'graf_load() failed (graf: attribute index out of bounds)'
-test_reference hopcroft-karp graphs/tchoukaillon-16.graf      references/hk-tchoukaillon.out       references/hk-tchoukaillon.err
-test_reference hopcroft-karp '-t graphs/tchoukaillon-16.graf' references/hk-tchoukaillon-table.out references/hk-tchoukaillon.err
+test_reference hopcroft-karp '-g graphs/tchoukaillon-16.graf' references/hk-tchoukaillon.out       references/hk-tchoukaillon.err
+test_reference hopcroft-karp '-t graphs/tchoukaillon-16.graf' references/hk-tchoukaillon-table.out references/empty
 echo -e "\n${passed_tests}/${total_tests} tests passed"
 
 if [[ $passed_tests -lt $total_tests ]]; then
