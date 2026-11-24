@@ -12,11 +12,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <time.h>
 #include <sys/random.h>
 #include <unistd.h>
 #include "graf.h"
 #include "vendor/pcg_basic/pcg_basic.h"
+
+#define PCG_INC 386
 
 #define ATTR_PART(vv) (vv)->attrs[graf->bipartite_part_v_attr_idx].u
 #define ATTR_LABEL(vv) (vv)->attrs[graf->label_v_attr_idx].s
@@ -45,16 +46,13 @@ typedef struct {
   int *dfs_arc_counts;
   int *sap_levels;
   int *sap_counts;
-} State;
-
-/* Forward declarations */
-void init_state(uint32_t, State *);
+} HKState;
 
 /*
   Greedily construct a maximal matching by matching each girl in turn
   with her first unmatched boy neighbour, if possible.
 */
-void construct_maximal_matching(Graf *graf, State *state) {
+void construct_maximal_matching(Graf *graf, HKState *state) {
   for (GrafVertex *g = graf->V; g < graf->V + graf->nv; g++) {
     // We iterate through only girls' neighbours.
     if (ATTR_PART(g) == 1) {
@@ -100,7 +98,7 @@ void construct_maximal_matching(Graf *graf, State *state) {
   GRAF_DEBUG("Size: %d\n\n", state->matching_size);
 }
 
-GrafStatus hopcroft_karp(Graf *graf, State *state) {
+GrafStatus hopcroft_karp(Graf *graf, HKState *state) {
   GRAF_ASSERT(graf != NULL);
   GRAF_ASSERT(state != NULL);
 
@@ -109,7 +107,6 @@ GrafStatus hopcroft_karp(Graf *graf, State *state) {
     return GRAF_ERR_USAGE;
   }
 
-  init_state(graf->nv, state);
   construct_maximal_matching(graf, state);
 
 bfs:
@@ -306,21 +303,15 @@ H13:
   goto next_sap;
 }
 
-void init_rand(bool flag_seed, uint64_t seed) {
-  if (flag_seed) {
-    pcg32_srandom(seed, 386u);
-  }
-  else {
-    ssize_t n = getrandom(&seed, sizeof(seed), 0);
-    if (n == -1 || (unsigned int) n < sizeof(seed)) {
-      fprintf(stderr, "getrandom() failed (OS: %s)\n", strerror(errno));
-      exit(1);
-    }
-    pcg32_srandom(seed, 386u);
+void seed_with_entropy(uint64_t *seed) {
+  ssize_t n = getrandom(seed, sizeof(seed), 0);
+  if (n == -1 || (unsigned int) n < sizeof(seed)) {
+    fprintf(stderr, "getrandom() failed (OS: %s)\n", strerror(errno));
+    exit(1);
   }
 }
 
-void init_state(uint32_t nv, State *state) {
+void init_state(uint32_t nv, HKState *state) {
   state->queue = calloc(nv, sizeof(*state->queue));
   state->iqueue = calloc(nv, sizeof(*state->iqueue));
   state->marked = calloc(nv, sizeof(*state->marked));
@@ -340,7 +331,7 @@ void init_state(uint32_t nv, State *state) {
   state->n_iter = 0;
 }
 
-void cleanup(Graf *graf, State *state) {
+void cleanup(Graf *graf, HKState *state) {
   free(graf->V);
   free(graf->internal.all_arcs);
   free(graf->internal.all_strs);
@@ -355,7 +346,6 @@ void cleanup(Graf *graf, State *state) {
   free(state->dfs_arc_counts);
   free(state->sap_levels);
   free(state->sap_counts);
-  free(state);
 }
 
 void input_file(char *path, Graf *graf) {
@@ -376,7 +366,7 @@ void input_file(char *path, Graf *graf) {
   }
 }
 
-void random_bipartite(Graf *graf, long m, long n, double p) {
+void rand_bipartite(Graf *graf, long m, long n, double p, uint64_t seed) {
   graf->nv = (uint32_t) (m + n);
   graf->a_attr_count = 0;
   graf->nchars = 0;
@@ -390,19 +380,38 @@ void random_bipartite(Graf *graf, long m, long n, double p) {
   graf->v_attr_count = 1;
   graf->v_attr_types[0] = GRAF_UINT;
 
-  GrafVertex *V = calloc(graf->nv, sizeof(*V));
-  // Overallocate the arcs, just to be very safe
-  GrafArc *A = calloc((size_t) (2 * m * n), sizeof(*graf->internal.all_arcs));
+  // Do a dry run of random arc selection to determine the number of
+  // arcs needed
+  uint64_t arc_count = 0;
+  pcg32_srandom(seed, PCG_INC);
 
-  // Initialise vertices
-  for (int i = 0; i < m + n; i++) {
+  for (uint32_t i = 0; i < m; i++) {
+    for (uint32_t j = 0; j < n; j++) {
+      double x = (double) pcg32_random() / UINT32_MAX;
+      if (x < p) {
+        arc_count += 2;
+        if (arc_count > UINT32_MAX) {
+          fprintf(stderr, "too many arcs: 'rand:%ld,%ld,%f'\n", m, n, p);
+          exit(1);
+        }
+      }
+    }
+  }
+
+  // Reset the RNG
+  pcg32_srandom(seed, PCG_INC);
+
+  // Build the graph
+  GrafVertex *V = calloc(graf->nv, sizeof(*V));
+  GrafArc *A = calloc(arc_count, sizeof(*graf->internal.all_arcs));
+
+  for (uint32_t i = 0; i < m + n; i++) {
     GrafVertex *v = &V[i];
     v->id = (uint32_t) i;
     v->arcs = NULL;
     v->attrs[0].u = i < m ? 0 : 1;
   }
 
-  // Initialise arcs randomly
   GrafArc *a = A;
 
   for (GrafVertex *v = V; v < V + m; v++) {
@@ -431,7 +440,7 @@ void random_bipartite(Graf *graf, long m, long n, double p) {
   graf_finalize(graf);
 }
 
-void input_rand(char *spec, Graf *graf) {
+void input_rand(char *spec, Graf *graf, uint64_t seed) {
   char *ptr = spec;
   // The spec is known to start with 'rand:' so it has at least 5 chars
   ptr += 5;
@@ -459,13 +468,7 @@ void input_rand(char *spec, Graf *graf) {
     exit(1);
   }
 
-  uint64_t na = 2 * (uint64_t) m * (uint64_t) n;
-  if (na > UINT32_MAX) {
-    fprintf(stderr, "too many arcs: '%s'\n", spec);
-    exit(1);
-  }
-
-  random_bipartite(graf, m, n, p);
+  rand_bipartite(graf, m, n, p, seed);
   return;
 
 bad:
@@ -473,7 +476,7 @@ bad:
   exit(1);
 }
 
-void print_tabular_format(State *state) {
+void print_tabular_format(HKState *state) {
   printf("iter,bfs-vertices,bfs-arcs,dfs-vertices,dfs-arcs,sap-level,sap-count\n");
   for (int i = 0; i < state->n_iter; i++) {
     printf("%d,%d,%d,%d,%d,%d,%d\n", i,
@@ -483,7 +486,7 @@ void print_tabular_format(State *state) {
   }
 }
 
-void print_human_format(Graf *graf, State *state) {
+void print_human_format(Graf *graf, HKState *state) {
   printf("Maximum matching (size %d):\n", state->matching_size);
   for (GrafVertex *v = graf->V; v < graf->V + graf->nv; v++) {
     GrafVertex *w = ATTR_MATE(v);
@@ -505,6 +508,23 @@ void print_human_format(Graf *graf, State *state) {
   }
 }
 
+void usage() {
+  fprintf(stderr,
+"Usage: hopcroft-karp [OPTION]... [SPEC]\n"
+"\n"
+"SPEC is either a path, or a string of the form 'rand:<M>,<N>,<P>', which\n"
+"tells the program to generate a random bipartite graph with part sizes M\n"
+"and N, where the proportion of edges given by P (a floating point number\n"
+"between 0 and 1).\n"
+"\n"
+"  -s SEED\tset random seed (for random graphs)\n"
+"  -g\tenable debug output\n"
+"  -t\toutput algorithm metrics in tabular format, for friendly parsing\n"
+"    \t(does not output the final matching)\n"
+  );
+  exit(1);
+}
+
 int main(int argc, char **argv) {
   bool flag_tabular_format = false;
   bool flag_debug = false;
@@ -523,55 +543,48 @@ int main(int argc, char **argv) {
       flag_seed = true;
       seed = (uint64_t) strtoll(optarg, NULL, 10);
     }
+    else if (c == '?') {
+      usage();
+    }
     else if (c == -1) {
       break;
     }
   }
 
   if (optind >= argc) {
-    fprintf(stderr,
-"Usage: hopcroft-karp [OPTION]... [SPEC]\n"
-"\n"
-"SPEC is either a path, or a string of the form 'rand:<M>,<N>,<P>', which\n"
-"tells the program to generate a random bipartite graph with part sizes M\n"
-"and N, where the proportion of edges given by P (a floating point number\n"
-"between 0 and 1).\n"
-"\n"
-"  -s SEED\tset random seed (for random graphs)\n"
-"  -g\tenable debug output\n"
-"  -t\toutput algorithm metrics in tabular format, for friendly parsing\n"
-"    \t(does not output the final matching)\n"
-"  -h\tprint this help message\n"
-    );
-    return 1;
+    usage();
+  }
+
+  if (!flag_seed) {
+    seed_with_entropy(&seed);
   }
 
   char *path = argv[optind];
-  Graf *graf = calloc(1, sizeof(*graf));
-  GrafStatus status = graf_init(graf);
+  Graf graf;
+  GrafStatus status = graf_init(&graf);
   GRAF_ASSERT(status == GRAF_OK);
   graf_set_debug(flag_debug);
 
   if (strncmp(path, "rand:", 5) == 0) {
-    init_rand(flag_seed, seed);
-    input_rand(path, graf);
+    input_rand(path, &graf, seed);
   }
   else {
-    input_file(path, graf);
+    input_file(path, &graf);
   }
 
-  State *state = calloc(1, sizeof(*state));
-  hopcroft_karp(graf, state);
+  HKState state;
+  init_state(graf.nv, &state);
+
+  hopcroft_karp(&graf, &state);
 
   if (flag_tabular_format) {
-    print_tabular_format(state);
+    print_tabular_format(&state);
   }
   else {
-    print_human_format(graf, state);
+    print_human_format(&graf, &state);
   }
 
-  graf_close(graf);
-  cleanup(graf, state);
-  free(graf);
+  graf_close(&graf);
+  cleanup(&graf, &state);
   return 0;
 }
