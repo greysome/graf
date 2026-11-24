@@ -3,6 +3,8 @@ test/outputs/
 build/
 dist/
 graphs/generators/__pycache__/
+analysis/.venv/
+analysis/tmp/
 *.tar.gz
 *.gcda
 *.gcno
