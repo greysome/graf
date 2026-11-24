@@ -7,12 +7,15 @@
 
 // For getopt()
 #define _XOPEN_SOURCE
+// For clock_gettime()
+#define _POSIX_C_SOURCE 199309L
 #include <errno.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/random.h>
+#include <time.h>
 #include <unistd.h>
 #include "graf.h"
 #include "vendor/pcg_basic/pcg_basic.h"
@@ -46,6 +49,8 @@ typedef struct {
   int *dfs_arc_counts;
   int *sap_levels;
   int *sap_counts;
+
+  long long time_taken;
 } HKState;
 
 /*
@@ -331,11 +336,13 @@ void init_state(uint32_t nv, HKState *state) {
   state->n_iter = 0;
 }
 
-void cleanup(Graf *graf, HKState *state) {
+void cleanup_graf(Graf *graf) {
   free(graf->V);
   free(graf->internal.all_arcs);
   free(graf->internal.all_strs);
+}
 
+void cleanup_state(HKState *state) {
   free(state->queue);
   free(state->iqueue);
   free(state->marked);
@@ -477,6 +484,7 @@ bad:
 }
 
 void print_tabular_format(HKState *state) {
+  printf("time=%lld\n", state->time_taken);
   printf("iter,bfs-vertices,bfs-arcs,dfs-vertices,dfs-arcs,sap-level,sap-count\n");
   for (int i = 0; i < state->n_iter; i++) {
     printf("%d,%d,%d,%d,%d,%d,%d\n", i,
@@ -506,6 +514,7 @@ void print_human_format(Graf *graf, HKState *state) {
            state->dfs_vertex_counts[i], state->dfs_arc_counts[i],
            state->sap_levels[i], state->sap_counts[i]);
   }
+  printf("\nTime taken: %lldns\n", state->time_taken);
 }
 
 void usage() {
@@ -573,9 +582,14 @@ int main(int argc, char **argv) {
   }
 
   HKState state;
-  init_state(graf.nv, &state);
+  struct timespec start;
+  struct timespec end;
 
+  init_state(graf.nv, &state);
+  clock_gettime(CLOCK_MONOTONIC, &start);
   hopcroft_karp(&graf, &state);
+  clock_gettime(CLOCK_MONOTONIC, &end);
+  state.time_taken = (end.tv_sec - start.tv_sec) * 1000000000LL + (end.tv_nsec - start.tv_nsec);
 
   if (flag_tabular_format) {
     print_tabular_format(&state);
@@ -585,6 +599,7 @@ int main(int argc, char **argv) {
   }
 
   graf_close(&graf);
-  cleanup(&graf, &state);
+  cleanup_graf(&graf);
+  cleanup_state(&state);
   return 0;
 }
